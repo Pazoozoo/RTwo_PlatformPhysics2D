@@ -98,7 +98,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 12
-  gravity: -1
+  gravity: -8
+  jumpForce: 25
+  jumpDecay: 50
 --- !u!61 &5068337057076821432
 BoxCollider2D:
   m_ObjectHideFlags: 0
