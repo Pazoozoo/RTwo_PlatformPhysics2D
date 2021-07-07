@@ -17,11 +17,7 @@ public class PlayerController : MonoBehaviour {
     void Update() {
 
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
-        
-        if (!_isGrounded)
-            _move.y = gravity * Time.deltaTime;
-        else 
-            _move.y = 0;
+        _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
 
         transform.position += _move;
     }
