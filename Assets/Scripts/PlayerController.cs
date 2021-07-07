@@ -5,10 +5,11 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
     [SerializeField] float speed = 12f;
-    [SerializeField] float gravity = -10f;
-    [SerializeField] float jumpForce = 10f;
-    [SerializeField] float jumpDecay = 1f;
+    [SerializeField] float gravity = -8f;
+    [SerializeField] float jumpForce = 25f;
+    [SerializeField] float jumpDecay = 50f;
     Vector3 _move = Vector3.zero;
+    Vector3 _playerExtents;
     float _jumpVelocity;
     bool _isGrounded;
     bool _hasJumped;
@@ -16,6 +17,7 @@ public class PlayerController : MonoBehaviour {
 
     void Awake() {
         _col = GetComponent<Collider2D>();
+        _playerExtents = _col.bounds.extents;
     }
 
     void Update() {
@@ -36,19 +38,24 @@ public class PlayerController : MonoBehaviour {
     }
 
     void OnTriggerEnter2D(Collider2D other) {
-        Vector3 extents = _col.bounds.extents;
-        Vector3 position = transform.position;
+        Vector3 playerPosition = transform.position;
+        _isGrounded = GroundCheck(other, playerPosition);
         
-        GroundCheck(other, position, extents);
+        if (_isGrounded) {
+            Bounds ground = other.bounds;
+            float groundHeight = ground.center.y + ground.extents.y;
+            
+            playerPosition.y = groundHeight + _playerExtents.y;
+            transform.position = playerPosition;
+            _hasJumped = false;
+        }
     }
 
-    void GroundCheck(Collider2D other, Vector3 position, Vector3 extents, float offset = 0.05f) {
-        position.y -= extents.y + offset;
-        var bottomLeftCorner = new Vector3(position.x - extents.x, position.y, 0);
-        var bottomRightCorner = new Vector3(position.x + extents.x, position.y, 0);
-        _isGrounded = other.OverlapPoint(bottomLeftCorner) || other.OverlapPoint(bottomRightCorner);
-        if (_isGrounded)
-            _hasJumped = false;
+    bool GroundCheck(Collider2D other, Vector3 position) {
+        position.y -= _playerExtents.y;
+        var bottomLeftCorner = new Vector3(position.x - _playerExtents.x, position.y, 0);
+        var bottomRightCorner = new Vector3(position.x + _playerExtents.x, position.y, 0);
+        return other.OverlapPoint(bottomLeftCorner) || other.OverlapPoint(bottomRightCorner);
     }
 
     void OnTriggerExit2D(Collider2D other) {
