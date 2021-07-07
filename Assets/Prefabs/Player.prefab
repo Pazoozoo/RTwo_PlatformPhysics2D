@@ -97,10 +97,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f68d46e3fe8d1814ea220ab6d3c2ccd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  jumpText: {fileID: 0}
   speed: 12
-  gravity: -8
-  jumpForce: 25
-  jumpDecay: 50
+  gravity: -10
+  jumpForce: 40
+  jumpDecay: 100
+  maxFallSpeed: -12
+  fallSpeedMultiplier: 1.5
+  fallSpeedThreshold: -5
 --- !u!61 &5068337057076821432
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -146,5 +150,5 @@ Rigidbody2D:
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
