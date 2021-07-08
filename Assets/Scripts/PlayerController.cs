@@ -17,22 +17,28 @@ public class PlayerController : MonoBehaviour {
     Vector3 _move = Vector3.zero;
     Vector3 _playerExtents;
     float _jumpVelocity;
+    const float VerticalRays = 4f;
+    const float HorizontalRays = 6f;
+    const float RaycastOffset = 0.2f;
     bool _isGrounded;
-    bool _isBlockedLeft;
     bool _hasJumped;
     Collider2D _col;
+    Bounds _bounds;
 
     void Awake() {
         _col = GetComponent<Collider2D>();
-        Bounds bounds = _col.bounds;
-        _playerExtents = bounds.extents;
+        _playerExtents = _col.bounds.extents;
     }
 
     void Update() {
-        GetContactPoints(transform.position);
-        
+        _bounds = _col.bounds;
+        //TODO raycast ground check
+        _isGrounded = true;
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
+
+        if (_move.x != 0) 
+            HorizontalColliderCheck();
 
         if (Input.GetButton("Jump") && !_hasJumped) {
             _jumpVelocity = jumpForce;
@@ -51,39 +57,38 @@ public class PlayerController : MonoBehaviour {
             _move.y += _jumpVelocity * Time.deltaTime;
         }
 
-        if (_isBlockedLeft && _move.x < 0)
-            _move.x = 0;
-        
-        transform.position += _move;
-        
-        // var position = transform.position;
-        // Debug.DrawLine(position, new Vector3(position.x, position.y - _playerExtents.y, 0), Color.magenta);
-        // Debug.DrawLine(new Vector3(position.x - _playerExtents.x, position.y, 0), 
-        //     new Vector3(position.x - _playerExtents.x, position.y - _playerExtents.y, 0), Color.magenta);
-        // Debug.DrawLine(new Vector3(position.x + _playerExtents.x, position.y, 0), 
-        //     new Vector3(position.x + _playerExtents.x, position.y - _playerExtents.y, 0), Color.magenta);
+        // if (_isBlockedLeft && _move.x < 0)
+        //     _move.x = 0;
+    }
+
+    void HorizontalColliderCheck() {
+        var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
+        var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
+        float rayLength = _bounds.extents.x + Mathf.Abs(_move.x);
+        Vector3 direction = _move.x > 0 ? Vector3.right : Vector3.left;
+
+        for (int i = 0; i < HorizontalRays; i++) {
+            float lerpAmount = i / (HorizontalRays - 1);
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, lerpAmount);
+            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            Debug.DrawRay(origin, direction, Color.cyan, 1f);
+            
+            if (hit.collider == null) continue;
+            
+            transform.position += direction * (hit.distance - _bounds.extents.x);
+            _move.x = 0f;
+            break;
+        }
     }
 
     void FixedUpdate() {
         jumpText.text = _jumpVelocity.ToString("F");
     }
 
-    // void OnTriggerEnter2D(Collider2D other) {
-    //     Vector3 playerPosition = transform.position;
-    //     GetContactPoints(playerPosition);
-    //     // Debug.Log($"Enter = {other.gameObject.name}: grounded = {_isGrounded}");
-    //     
-    //     // if (_isGrounded) {
-    //     //     Bounds ground = other.bounds;
-    //     //     float groundHeight = ground.center.y + ground.extents.y;
-    //     //
-    //     //     playerPosition.y = groundHeight + _playerExtents.y;
-    //     //     transform.position = playerPosition;
-    //     //     _hasJumped = false;
-    //     // }
-    //
-    //     //TODO wall check
-    // }
+    void LateUpdate() {
+        transform.position += _move;
+    }
+
 
     void GetContactPoints(Vector2 position) {
         Vector2 originalPosition = position;
@@ -116,16 +121,11 @@ public class PlayerController : MonoBehaviour {
             Debug.DrawRay(position, Vector3.left, Color.cyan, 2f);
             if (leftHit) {
                 Debug.Log("leftHit: " + leftHit.collider.gameObject.name);
-                _isBlockedLeft = true;
+                // _isBlockedLeft = true;
                 break;
             }
             position.y += _playerExtents.y * 0.9f;
-            _isBlockedLeft = false;
+            // _isBlockedLeft = false;
         }
     }
-
-    // void OnTriggerExit2D(Collider2D other) {
-    //     GetContactPoints(transform.position);
-    //     // Debug.Log($"Exit: grounded = {_isGrounded}");
-    // }
 }
