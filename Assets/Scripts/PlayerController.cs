@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] float maxFallSpeed = -10f;
     [SerializeField] float fallSpeedMultiplier = 1.1f;
     [SerializeField] float fallSpeedThreshold = 0f;
+    [SerializeField] LayerMask groundLayers;
     Vector3 _move = Vector3.zero;
     Vector3 _playerExtents;
     float _jumpVelocity;
@@ -22,18 +23,19 @@ public class PlayerController : MonoBehaviour {
 
     void Awake() {
         _col = GetComponent<Collider2D>();
-        _playerExtents = _col.bounds.extents;
+        Bounds bounds = _col.bounds;
+        _playerExtents = bounds.extents;
     }
 
     void Update() {
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
-        
+
         if (Input.GetButton("Jump") && !_hasJumped) {
             _jumpVelocity = jumpForce;
             _hasJumped = true;
         }
-        
+
         if (_hasJumped) {
             _jumpVelocity -= jumpDecay * Time.deltaTime;
 
@@ -42,11 +44,18 @@ public class PlayerController : MonoBehaviour {
 
             if (_jumpVelocity <= maxFallSpeed)
                 _jumpVelocity = maxFallSpeed;
-            
+
             _move.y += _jumpVelocity * Time.deltaTime;
         }
 
         transform.position += _move;
+        
+        // var position = transform.position;
+        // Debug.DrawLine(position, new Vector3(position.x, position.y - _playerExtents.y, 0), Color.magenta);
+        // Debug.DrawLine(new Vector3(position.x - _playerExtents.x, position.y, 0), 
+        //     new Vector3(position.x - _playerExtents.x, position.y - _playerExtents.y, 0), Color.magenta);
+        // Debug.DrawLine(new Vector3(position.x + _playerExtents.x, position.y, 0), 
+        //     new Vector3(position.x + _playerExtents.x, position.y - _playerExtents.y, 0), Color.magenta);
     }
 
     void FixedUpdate() {
@@ -55,27 +64,39 @@ public class PlayerController : MonoBehaviour {
 
     void OnTriggerEnter2D(Collider2D other) {
         Vector3 playerPosition = transform.position;
-        _isGrounded = GroundCheck(other, playerPosition);
-        Debug.Log($"Enter: grounded = {_isGrounded}");
+        GetContactPoints(playerPosition);
+        Debug.Log($"Enter = {other.gameObject.name}: grounded = {_isGrounded}");
+        
         if (_isGrounded) {
             Bounds ground = other.bounds;
             float groundHeight = ground.center.y + ground.extents.y;
-            
+
             playerPosition.y = groundHeight + _playerExtents.y;
             transform.position = playerPosition;
             _hasJumped = false;
         }
+
+        //TODO wall check
     }
 
-    bool GroundCheck(Collider2D other, Vector3 position) {
-        position.y -= _playerExtents.y + 0.05f;
-        var bottomLeftCorner = new Vector3(position.x - _playerExtents.x, position.y, 0);
-        var bottomRightCorner = new Vector3(position.x + _playerExtents.x, position.y, 0);
-        return other.OverlapPoint(bottomLeftCorner) || other.OverlapPoint(bottomRightCorner);
+    void GetContactPoints(Vector2 position) {
+        position.x += _playerExtents.x;
+
+        for (int i = 0; i < 3; i++) {
+            RaycastHit2D downHit = Physics2D.Raycast(position, Vector2.down, _playerExtents.y + 0.05f, groundLayers);
+            Debug.DrawRay(position, Vector3.down, Color.cyan, 2f);
+            if (downHit) {
+                Debug.Log("downHit: " + downHit.collider.gameObject.name);
+                _isGrounded = true;
+                break;
+            }
+            position.x -= _playerExtents.x;
+            _isGrounded = false;
+        }
     }
 
     void OnTriggerExit2D(Collider2D other) {
-        _isGrounded = false;
+        GetContactPoints(transform.position);
         Debug.Log($"Exit: grounded = {_isGrounded}");
     }
 }

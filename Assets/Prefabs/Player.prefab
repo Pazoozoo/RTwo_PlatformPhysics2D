@@ -105,6 +105,9 @@ MonoBehaviour:
   maxFallSpeed: -12
   fallSpeedMultiplier: 1.5
   fallSpeedThreshold: -5
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!61 &5068337057076821432
 BoxCollider2D:
   m_ObjectHideFlags: 0
