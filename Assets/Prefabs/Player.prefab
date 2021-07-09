@@ -99,10 +99,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   jumpText: {fileID: 0}
   speed: 12
-  gravity: -10
-  jumpForce: 35
+  gravity: -20
+  jumpForce: 50
   jumpDecay: 100
-  maxFallSpeed: -12
   fallSpeedMultiplier: 1.5
   fallSpeedThreshold: -5
   groundLayers:

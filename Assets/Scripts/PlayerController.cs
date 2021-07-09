@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,9 +9,6 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] float gravity = -8f;
     [SerializeField] float jumpForce = 25f;
     [SerializeField] float jumpDecay = 50f;
-    [SerializeField] float maxFallSpeed = -10f;
-    [SerializeField] float fallSpeedMultiplier = 1.1f;
-    [SerializeField] float fallSpeedThreshold = 0f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _move = Vector3.zero;
     float _jumpVelocity;
@@ -31,22 +27,23 @@ public class PlayerController : MonoBehaviour {
     void Update() {
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
-
-        if (Input.GetButton("Jump") && !_hasJumped) {
+        
+        if (Input.GetButton("Jump") && !_hasJumped && _isGrounded) {
             _jumpVelocity = jumpForce;
             _hasJumped = true;
         }
 
         if (_hasJumped) {
-            _jumpVelocity -= jumpDecay * Time.deltaTime;
-
-            if (_jumpVelocity < fallSpeedThreshold)
-                _jumpVelocity *= _jumpVelocity > 0 ? -fallSpeedMultiplier : fallSpeedMultiplier;
-
-            if (_jumpVelocity <= maxFallSpeed)
-                _jumpVelocity = maxFallSpeed;
-
+            if (_jumpVelocity > 0f)
+                _jumpVelocity -= jumpDecay * Time.deltaTime;
+            
             _move.y += _jumpVelocity * Time.deltaTime;
+            float maxFallSpeed = gravity * Time.deltaTime;
+            
+            if (_move.y < maxFallSpeed) {
+                _move.y = maxFallSpeed;
+                _jumpVelocity = 0f;
+            }
         }
 
         bool moving = _move != Vector3.zero;
@@ -74,9 +71,12 @@ public class PlayerController : MonoBehaviour {
 
     void LateUpdate() {
         transform.position += _move;
+        // Debug.Log($"y: {_move.y} jumpVelocity: {_jumpVelocity * Time.deltaTime}");
     }
 
+    //TODO refactor collision checks (DRY)
     void GroundCheck() {
+        Debug.Log("ground check");
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
         float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
@@ -85,13 +85,15 @@ public class PlayerController : MonoBehaviour {
         for (int i = 0; i < VerticalRays; i++) {
             Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
             RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
-            Debug.DrawRay(origin, Vector3.down, Color.cyan, 1f);
+            Debug.DrawRay(origin, direction, Color.cyan, 1f);
 
             if (hit.collider == null) {
+                Debug.Log("not grounded");
                 _isGrounded = false;
                 continue;
             }
 
+            Debug.Log($"Hit: {hit.collider.gameObject.name}");
             transform.position += direction * (hit.distance - _bounds.extents.y);
             _move.y = 0f;
             _isGrounded = true;
@@ -101,6 +103,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     void CeilingCheck() {
+        _isGrounded = false;
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
         float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
@@ -112,7 +115,7 @@ public class PlayerController : MonoBehaviour {
             Debug.DrawRay(origin, Vector3.up, Color.cyan, 1f);
 
             if (hit.collider == null) continue;
-
+            
             transform.position += direction * (hit.distance - _bounds.extents.y);
             _move.y = 0f;
             _jumpVelocity = 0f;
