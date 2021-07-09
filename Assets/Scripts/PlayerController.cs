@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour {
     float _jumpVelocity;
     const float VerticalRays = 4f;
     const float HorizontalRays = 6f;
-    const float RaycastOffset = 0.2f;
+    const float RaycastOffset = 0.05f;
     bool _isGrounded;
     bool _hasJumped;
     Collider2D _col;
@@ -32,13 +32,8 @@ public class PlayerController : MonoBehaviour {
 
     void Update() {
         _bounds = _col.bounds;
-        //TODO raycast ground check
-        _isGrounded = true;
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
-
-        if (_move.x != 0) 
-            HorizontalColliderCheck();
 
         if (Input.GetButton("Jump") && !_hasJumped) {
             _jumpVelocity = jumpForce;
@@ -57,30 +52,18 @@ public class PlayerController : MonoBehaviour {
             _move.y += _jumpVelocity * Time.deltaTime;
         }
 
-        // if (_isBlockedLeft && _move.x < 0)
-        //     _move.x = 0;
+        bool falling = _move.y < 0;
+        bool rising = _move.y > 0;
+        bool movingOnGround = _move.y == 0 && _move.x != 0;
+        bool movingHorizontally = _move.x != 0;
+
+        if (falling || movingOnGround)
+            GroundCheck();
+        
+        if (movingHorizontally) 
+            WallCheck();
     }
-
-    void HorizontalColliderCheck() {
-        var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
-        var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
-        float rayLength = _bounds.extents.x + Mathf.Abs(_move.x);
-        Vector3 direction = _move.x > 0 ? Vector3.right : Vector3.left;
-
-        for (int i = 0; i < HorizontalRays; i++) {
-            float lerpAmount = i / (HorizontalRays - 1);
-            Vector2 origin = Vector2.Lerp(startPoint, endPoint, lerpAmount);
-            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
-            Debug.DrawRay(origin, direction, Color.cyan, 1f);
-            
-            if (hit.collider == null) continue;
-            
-            transform.position += direction * (hit.distance - _bounds.extents.x);
-            _move.x = 0f;
-            break;
-        }
-    }
-
+    
     void FixedUpdate() {
         jumpText.text = _jumpVelocity.ToString("F");
     }
@@ -89,43 +72,46 @@ public class PlayerController : MonoBehaviour {
         transform.position += _move;
     }
 
+    void GroundCheck() {
+        var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
+        var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
+        Vector3 direction = Vector3.down;
 
-    void GetContactPoints(Vector2 position) {
-        Vector2 originalPosition = position;
-        position.x += _playerExtents.x * 0.9f;
+        for (int i = 0; i < VerticalRays; i++) {
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
+            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            Debug.DrawRay(origin, Vector3.down, Color.cyan, 1f);
 
-        for (int i = 0; i < 3; i++) {
-            RaycastHit2D downHit = Physics2D.Raycast(position, Vector2.down, _playerExtents.y, groundLayers);
-            Debug.DrawRay(position, Vector3.down, Color.cyan, 2f);
-            if (downHit) {
-                Debug.Log("downHit: " + downHit.collider.gameObject.name);
-                _isGrounded = true;
-                _hasJumped = false;
-                
-                Bounds ground = downHit.collider.bounds;
-                float groundPositionY = ground.center.y + ground.extents.y;
-                Vector2 updatedPosition = originalPosition;
-                updatedPosition.y = groundPositionY + _playerExtents.y;
-                transform.position = updatedPosition;
-                break;
+            if (hit.collider == null) {
+                _isGrounded = false;
+                continue;
             }
-            position.x -= _playerExtents.x * 0.9f;
-            _isGrounded = false;
+
+            transform.position += direction * (hit.distance - _bounds.extents.y);
+            _move.y = 0f;
+            _isGrounded = true;
+            _hasJumped = false;
+            break;
         }
+    }
 
-        position = originalPosition;
-        position.y -= _playerExtents.y * 0.9f;
-        
-        for (int i = 0; i < 3; i++) {
-            RaycastHit2D leftHit = Physics2D.Raycast(position, Vector2.left, _playerExtents.x, groundLayers);
-            Debug.DrawRay(position, Vector3.left, Color.cyan, 2f);
-            if (leftHit) {
-                Debug.Log("leftHit: " + leftHit.collider.gameObject.name);
-                // _isBlockedLeft = true;
-                break;
-            }
-            position.y += _playerExtents.y * 0.9f;
-            // _isBlockedLeft = false;
+    void WallCheck() {
+        var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
+        var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
+        float rayLength = _bounds.extents.x + Mathf.Abs(_move.x);
+        Vector3 direction = _move.x > 0 ? Vector3.right : Vector3.left;
+
+        for (int i = 0; i < HorizontalRays; i++) {
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (HorizontalRays - 1));
+            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            Debug.DrawRay(origin, direction, Color.cyan, 1f);
+            
+            if (hit.collider == null) continue;
+            
+            transform.position += direction * (hit.distance - _bounds.extents.x);
+            _move.x = 0f;
+            break;
         }
     }
 }

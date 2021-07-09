@@ -100,7 +100,7 @@ MonoBehaviour:
   jumpText: {fileID: 0}
   speed: 12
   gravity: -10
-  jumpForce: 40
+  jumpForce: 35
   jumpDecay: 100
   maxFallSpeed: -12
   fallSpeedMultiplier: 1.5
