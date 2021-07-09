@@ -15,10 +15,9 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] float fallSpeedThreshold = 0f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _move = Vector3.zero;
-    Vector3 _playerExtents;
     float _jumpVelocity;
-    const float VerticalRays = 4f;
-    const float HorizontalRays = 6f;
+    const float VerticalRays = 3f;
+    const float HorizontalRays = 5f;
     const float RaycastOffset = 0.05f;
     bool _isGrounded;
     bool _hasJumped;
@@ -27,11 +26,9 @@ public class PlayerController : MonoBehaviour {
 
     void Awake() {
         _col = GetComponent<Collider2D>();
-        _playerExtents = _col.bounds.extents;
     }
 
     void Update() {
-        _bounds = _col.bounds;
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
 
@@ -52,16 +49,23 @@ public class PlayerController : MonoBehaviour {
             _move.y += _jumpVelocity * Time.deltaTime;
         }
 
-        bool falling = _move.y < 0;
-        bool rising = _move.y > 0;
-        bool movingOnGround = _move.y == 0 && _move.x != 0;
-        bool movingHorizontally = _move.x != 0;
-
-        if (falling || movingOnGround)
-            GroundCheck();
+        bool moving = _move != Vector3.zero;
         
+        if (!moving) return;
+        
+        _bounds = _col.bounds;
+        bool movingHorizontally = _move.x != 0;
+        bool movingDown = _move.y < 0;
+        bool movingUp = _move.y > 0;
+        bool movingOnGround = _move.y == 0 && movingHorizontally;
+
         if (movingHorizontally) 
             WallCheck();
+        
+        if (movingDown || movingOnGround)
+            GroundCheck();
+        else if (movingUp)
+            CeilingCheck();
     }
     
     void FixedUpdate() {
@@ -92,6 +96,26 @@ public class PlayerController : MonoBehaviour {
             _move.y = 0f;
             _isGrounded = true;
             _hasJumped = false;
+            break;
+        }
+    }
+
+    void CeilingCheck() {
+        var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
+        var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
+        Vector3 direction = Vector3.up;
+
+        for (int i = 0; i < VerticalRays; i++) {
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
+            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            Debug.DrawRay(origin, Vector3.up, Color.cyan, 1f);
+
+            if (hit.collider == null) continue;
+
+            transform.position += direction * (hit.distance - _bounds.extents.y);
+            _move.y = 0f;
+            _jumpVelocity = 0f;
             break;
         }
     }
