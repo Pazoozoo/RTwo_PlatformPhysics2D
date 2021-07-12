@@ -69,7 +69,7 @@ public class PlayerController : MonoBehaviour {
         bool movingUp = _move.y > 0;
         bool movingOnGround = _move.y == 0 && movingHorizontally;
 
-        if (movingHorizontally) 
+        if (movingHorizontally || _onWall) 
             WallCheck();
         
         if (movingDown || movingOnGround)
@@ -154,7 +154,17 @@ public class PlayerController : MonoBehaviour {
             
             transform.position += direction * (hit.distance - _bounds.extents.x);
             _move.x = 0f;
-            _onWall = true;
+
+            if (_isGrounded) {
+                _onWall = false;
+                return;
+            }
+            
+            _onWall = Input.GetAxisRaw("Horizontal") switch {
+                1 => direction == Vector3.right,
+                -1 => direction == Vector3.left,
+                _ => false
+            };
             break;
         }
     }

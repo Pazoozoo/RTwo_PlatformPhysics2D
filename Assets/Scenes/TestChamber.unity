@@ -697,10 +697,6 @@ PrefabInstance:
       propertyPath: jumpText
       value: 
       objectReference: {fileID: 1331163979}
-    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
-      propertyPath: wallHangTime
-      value: 5
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ba363a9507c63914791016a518c6de69, type: 3}
 --- !u!1001 &7825474226287462368
@@ -724,7 +720,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7825474226671334841, guid: 243bcb108804c774aba5361d6e9ef71b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -5.85
+      value: -6
       objectReference: {fileID: 0}
     - target: {fileID: 7825474226671334841, guid: 243bcb108804c774aba5361d6e9ef71b, type: 3}
       propertyPath: m_LocalPosition.z
