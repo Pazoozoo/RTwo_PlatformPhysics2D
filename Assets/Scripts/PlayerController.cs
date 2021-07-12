@@ -8,13 +8,16 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] float speed = 12f;
     [SerializeField] float gravity = -8f;
     [SerializeField] float wallSlideMultiplier = 0.2f;
-    [SerializeField] float wallHangTime = 0.1f;
+    [SerializeField] float startWallSlideGraceTime = 0.08f;
+    [SerializeField] float stopWallSlideGraceTime = 0.04f;
     [SerializeField] float jumpForce = 25f;
     [SerializeField] float jumpDecay = 50f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _move = Vector3.zero;
+    int _facingDirection = 1;
     float _jumpVelocity;
-    float _wallHangStartTime;
+    float _wallSlideStartTime;
+    float _wallSlideStopTime;
     const float VerticalRays = 3f;
     const float HorizontalRays = 5f;
     const float RaycastOffset = 0.05f;
@@ -23,6 +26,7 @@ public class PlayerController : MonoBehaviour {
     bool _onWall;
     Collider2D _col;
     Bounds _bounds;
+    //TODO replace bools with state enum
 
     void Awake() {
         _col = GetComponent<Collider2D>();
@@ -31,14 +35,25 @@ public class PlayerController : MonoBehaviour {
     void Update() {
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
-        
-        if (_onWall) {
-            _jumpVelocity = 0f;
 
-            if (Time.time < _wallHangStartTime + wallHangTime)
+        if (_move.x > 0)
+            _facingDirection = 1;
+        else if (_move.x < 0)
+            _facingDirection = -1;
+        
+        switch (_onWall) {
+            case true: {
+                _jumpVelocity = 0f;
+
+                if (Time.time < _wallSlideStartTime + startWallSlideGraceTime)
+                    _move.y = 0f;
+                else
+                    _move.y *= wallSlideMultiplier;
+                break;
+            }
+            case false when Time.time < _wallSlideStopTime + stopWallSlideGraceTime:
                 _move.y = 0f;
-            else
-                _move.y *= wallSlideMultiplier;
+                break;
         }
         
         if (Input.GetButton("Jump") && !_hasJumped && _isGrounded) {
@@ -84,10 +99,9 @@ public class PlayerController : MonoBehaviour {
 
     void LateUpdate() {
         transform.position += _move;
-        // Debug.Log($"y: {_move.y} jumpVelocity: {_jumpVelocity * Time.deltaTime}");
     }
 
-    //TODO refactor collision checks (DRY)
+    //TODO refactor collision checks (DRY), maybe move them to a new class 
     void GroundCheck() {
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
@@ -137,7 +151,8 @@ public class PlayerController : MonoBehaviour {
         var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
         var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
         float rayLength = _bounds.extents.x + Mathf.Abs(_move.x);
-        Vector3 direction = _move.x > 0 ? Vector3.right : Vector3.left;
+        int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
+        var direction = new Vector3(_facingDirection, 0, 0);
 
         for (int i = 0; i < HorizontalRays; i++) {
             Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (HorizontalRays - 1));
@@ -150,7 +165,7 @@ public class PlayerController : MonoBehaviour {
             }
 
             if (!_onWall)
-                _wallHangStartTime = Time.time;
+                _wallSlideStartTime = Time.time;
             
             transform.position += direction * (hit.distance - _bounds.extents.x);
             _move.x = 0f;
@@ -159,12 +174,13 @@ public class PlayerController : MonoBehaviour {
                 _onWall = false;
                 return;
             }
-            
-            _onWall = Input.GetAxisRaw("Horizontal") switch {
-                1 => direction == Vector3.right,
-                -1 => direction == Vector3.left,
-                _ => false
-            };
+
+            if (horizontalInput == _facingDirection) 
+                _onWall = true;
+            else {
+                _onWall = false;
+                _wallSlideStopTime = Time.time;
+            }
             break;
         }
     }
