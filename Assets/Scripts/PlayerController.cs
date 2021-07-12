@@ -7,16 +7,20 @@ public class PlayerController : MonoBehaviour {
     public Text jumpText;
     [SerializeField] float speed = 12f;
     [SerializeField] float gravity = -8f;
+    [SerializeField] float wallSlideMultiplier = 0.2f;
+    [SerializeField] float wallHangTime = 0.1f;
     [SerializeField] float jumpForce = 25f;
     [SerializeField] float jumpDecay = 50f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _move = Vector3.zero;
     float _jumpVelocity;
+    float _wallHangStartTime;
     const float VerticalRays = 3f;
     const float HorizontalRays = 5f;
     const float RaycastOffset = 0.05f;
     bool _isGrounded;
     bool _hasJumped;
+    bool _onWall;
     Collider2D _col;
     Bounds _bounds;
 
@@ -28,12 +32,21 @@ public class PlayerController : MonoBehaviour {
         _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
         _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
         
+        if (_onWall) {
+            _jumpVelocity = 0f;
+
+            if (Time.time < _wallHangStartTime + wallHangTime)
+                _move.y = 0f;
+            else
+                _move.y *= wallSlideMultiplier;
+        }
+        
         if (Input.GetButton("Jump") && !_hasJumped && _isGrounded) {
             _jumpVelocity = jumpForce;
             _hasJumped = true;
         }
 
-        if (_hasJumped) {
+        if (_hasJumped && !_onWall) {
             if (_jumpVelocity > 0f)
                 _jumpVelocity -= jumpDecay * Time.deltaTime;
             
@@ -76,7 +89,6 @@ public class PlayerController : MonoBehaviour {
 
     //TODO refactor collision checks (DRY)
     void GroundCheck() {
-        Debug.Log("ground check");
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
         float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
@@ -88,12 +100,10 @@ public class PlayerController : MonoBehaviour {
             Debug.DrawRay(origin, direction, Color.cyan, 1f);
 
             if (hit.collider == null) {
-                Debug.Log("not grounded");
                 _isGrounded = false;
                 continue;
             }
 
-            Debug.Log($"Hit: {hit.collider.gameObject.name}");
             transform.position += direction * (hit.distance - _bounds.extents.y);
             _move.y = 0f;
             _isGrounded = true;
@@ -134,10 +144,17 @@ public class PlayerController : MonoBehaviour {
             RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
             Debug.DrawRay(origin, direction, Color.cyan, 1f);
             
-            if (hit.collider == null) continue;
+            if (hit.collider == null) {
+                _onWall = false;
+                continue;
+            }
+
+            if (!_onWall)
+                _wallHangStartTime = Time.time;
             
             transform.position += direction * (hit.distance - _bounds.extents.x);
             _move.x = 0f;
+            _onWall = true;
             break;
         }
     }
