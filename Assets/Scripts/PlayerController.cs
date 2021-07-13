@@ -14,7 +14,8 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
     [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
     [SerializeField] LayerMask groundLayers;
-    Vector3 _velocity = Vector3.zero;
+    Vector3 _velocity;
+    Vector3 _movement;
     int _facingDirection = 1;
     float _jumpVelocity;
     float _wallSlideStartTime;
@@ -76,16 +77,17 @@ public class PlayerController : MonoBehaviour {
                 _jumpVelocity = 0f;
             }
         }
-
+        
         bool moving = _velocity != Vector3.zero;
         
         if (!moving) return;
         
+        _movement = _velocity * Time.deltaTime;
         _bounds = _col.bounds;
-        bool movingHorizontally = _velocity.x != 0;
-        bool movingDown = _velocity.y < 0;
-        bool movingUp = _velocity.y > 0;
-        bool movingOnGround = _velocity.y == 0 && movingHorizontally;
+        bool movingHorizontally = _movement.x != 0;
+        bool movingDown = _movement.y < 0;
+        bool movingUp = _movement.y > 0;
+        bool movingOnGround = _movement.y == 0 && movingHorizontally;
 
         if (movingHorizontally || _onWall) 
             WallCheck();
@@ -101,17 +103,14 @@ public class PlayerController : MonoBehaviour {
     }
 
     void LateUpdate() {
-        if (_velocity != Vector3.zero)
-            Debug.Log("x: "+_velocity.x + " y: " + _velocity.y);
-        
-        transform.position += _velocity * Time.deltaTime;
+        transform.position += _movement;
     }
 
     //TODO refactor collision checks (DRY), maybe move them to a new class 
     void GroundCheck() {
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_velocity.y * Time.deltaTime);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
         Vector3 direction = Vector3.down;
 
         for (int i = 0; i < VerticalRays; i++) {
@@ -125,7 +124,7 @@ public class PlayerController : MonoBehaviour {
             }
 
             transform.position += direction * (hit.distance - _bounds.extents.y);
-            _velocity.y = 0f;
+            _movement.y = 0f;
             _isGrounded = true;
             _hasJumped = false;
             break;
@@ -136,7 +135,7 @@ public class PlayerController : MonoBehaviour {
         _isGrounded = false;
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_velocity.y * Time.deltaTime);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
         Vector3 direction = Vector3.up;
 
         for (int i = 0; i < VerticalRays; i++) {
@@ -147,7 +146,7 @@ public class PlayerController : MonoBehaviour {
             if (hit.collider == null) continue;
             
             transform.position += direction * (hit.distance - _bounds.extents.y);
-            _velocity.y = 0f;
+            _movement.y = 0f;
             _jumpVelocity = 0f;
             break;
         }
@@ -156,7 +155,7 @@ public class PlayerController : MonoBehaviour {
     void WallCheck() {
         var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
         var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
-        float rayLength = _bounds.extents.x + Mathf.Abs(_velocity.x * Time.deltaTime);
+        float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
         var direction = new Vector3(_facingDirection, 0, 0);
 
@@ -174,7 +173,7 @@ public class PlayerController : MonoBehaviour {
                 _wallSlideStartTime = Time.time;
             
             transform.position += direction * (hit.distance - _bounds.extents.x);
-            _velocity.x = 0f;
+            _movement.x = 0f;
 
             if (_isGrounded) {
                 _onWall = false;
