@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour {
     public Text jumpText;
     [SerializeField, Range(0f, 50f)] float maxSpeed = 12f;
     [SerializeField, Range(0f, 800f)] float maxAcceleration = 400f;
+    [SerializeField, Range(0f, 800f)] float maxAirAcceleration = 400f;
     [SerializeField, Range(0f, -50f)] float gravity = -8f;
     [SerializeField, Range(0f, 1f)] float wallSlideMultiplier = 0.2f;
     [SerializeField, Range(0f, 0.3f)] float startWallSlideGraceTime = 0.08f;
@@ -28,15 +29,18 @@ public class PlayerController : MonoBehaviour {
     bool _onWall;
     Collider2D _col;
     Bounds _bounds;
+    SpriteRenderer _spriteRenderer;
     //TODO replace bools with state enum
 
     void Awake() {
         _col = GetComponent<Collider2D>();
+        _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void Update() {
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
-        float maxSpeedChange = maxAcceleration * Time.deltaTime;
+        float maxSpeedChange = _isGrounded || _onWall ? maxAcceleration : maxAirAcceleration;
+        maxSpeedChange *= Time.deltaTime;
         
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
         _velocity.y = _isGrounded ? 0f : gravity;
@@ -78,11 +82,11 @@ public class PlayerController : MonoBehaviour {
             }
         }
         
-        bool moving = _velocity != Vector3.zero;
-        
+        _movement = _velocity * Time.deltaTime;
+        bool moving = _movement != Vector3.zero;
+
         if (!moving) return;
         
-        _movement = _velocity * Time.deltaTime;
         _bounds = _col.bounds;
         bool movingHorizontally = _movement.x != 0;
         bool movingDown = _movement.y < 0;
@@ -103,6 +107,13 @@ public class PlayerController : MonoBehaviour {
     }
 
     void LateUpdate() {
+        if (_isGrounded)
+            _spriteRenderer.color = Color.red;
+        else if (_onWall)
+            _spriteRenderer.color = Color.gray;
+        else 
+            _spriteRenderer.color = Color.yellow;
+
         transform.position += _movement;
     }
 
