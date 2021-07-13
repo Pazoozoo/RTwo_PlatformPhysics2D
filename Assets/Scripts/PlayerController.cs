@@ -5,15 +5,16 @@ using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour {
     public Text jumpText;
-    [SerializeField] float speed = 12f;
-    [SerializeField] float gravity = -8f;
-    [SerializeField] float wallSlideMultiplier = 0.2f;
-    [SerializeField] float startWallSlideGraceTime = 0.08f;
-    [SerializeField] float stopWallSlideGraceTime = 0.04f;
-    [SerializeField] float jumpForce = 25f;
-    [SerializeField] float jumpDecay = 50f;
+    [SerializeField, Range(0f, 50f)] float maxSpeed = 12f;
+    [SerializeField, Range(0f, 800f)] float maxAcceleration = 400f;
+    [SerializeField, Range(0f, -50f)] float gravity = -8f;
+    [SerializeField, Range(0f, 1f)] float wallSlideMultiplier = 0.2f;
+    [SerializeField, Range(0f, 0.3f)] float startWallSlideGraceTime = 0.08f;
+    [SerializeField, Range(0f, 0.3f)] float stopWallSlideGraceTime = 0.04f;
+    [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
+    [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
     [SerializeField] LayerMask groundLayers;
-    Vector3 _move = Vector3.zero;
+    Vector3 _velocity = Vector3.zero;
     int _facingDirection = 1;
     float _jumpVelocity;
     float _wallSlideStartTime;
@@ -33,12 +34,15 @@ public class PlayerController : MonoBehaviour {
     }
 
     void Update() {
-        _move.x = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
-        _move.y = _isGrounded ? 0f : gravity * Time.deltaTime;
+        float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
+        float maxSpeedChange = maxAcceleration * Time.deltaTime;
+        
+        _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
+        _velocity.y = _isGrounded ? 0f : gravity;
 
-        if (_move.x > 0)
+        if (_velocity.x > 0)
             _facingDirection = 1;
-        else if (_move.x < 0)
+        else if (_velocity.x < 0)
             _facingDirection = -1;
         
         switch (_onWall) {
@@ -46,13 +50,13 @@ public class PlayerController : MonoBehaviour {
                 _jumpVelocity = 0f;
 
                 if (Time.time < _wallSlideStartTime + startWallSlideGraceTime)
-                    _move.y = 0f;
+                    _velocity.y = 0f;
                 else
-                    _move.y *= wallSlideMultiplier;
+                    _velocity.y *= wallSlideMultiplier;
                 break;
             }
             case false when Time.time < _wallSlideStopTime + stopWallSlideGraceTime:
-                _move.y = 0f;
+                _velocity.y = 0f;
                 break;
         }
         
@@ -65,24 +69,23 @@ public class PlayerController : MonoBehaviour {
             if (_jumpVelocity > 0f)
                 _jumpVelocity -= jumpDecay * Time.deltaTime;
             
-            _move.y += _jumpVelocity * Time.deltaTime;
-            float maxFallSpeed = gravity * Time.deltaTime;
+            _velocity.y += _jumpVelocity;
             
-            if (_move.y < maxFallSpeed) {
-                _move.y = maxFallSpeed;
+            if (_velocity.y < gravity) {
+                _velocity.y = gravity;
                 _jumpVelocity = 0f;
             }
         }
 
-        bool moving = _move != Vector3.zero;
+        bool moving = _velocity != Vector3.zero;
         
         if (!moving) return;
         
         _bounds = _col.bounds;
-        bool movingHorizontally = _move.x != 0;
-        bool movingDown = _move.y < 0;
-        bool movingUp = _move.y > 0;
-        bool movingOnGround = _move.y == 0 && movingHorizontally;
+        bool movingHorizontally = _velocity.x != 0;
+        bool movingDown = _velocity.y < 0;
+        bool movingUp = _velocity.y > 0;
+        bool movingOnGround = _velocity.y == 0 && movingHorizontally;
 
         if (movingHorizontally || _onWall) 
             WallCheck();
@@ -98,14 +101,17 @@ public class PlayerController : MonoBehaviour {
     }
 
     void LateUpdate() {
-        transform.position += _move;
+        if (_velocity != Vector3.zero)
+            Debug.Log("x: "+_velocity.x + " y: " + _velocity.y);
+        
+        transform.position += _velocity * Time.deltaTime;
     }
 
     //TODO refactor collision checks (DRY), maybe move them to a new class 
     void GroundCheck() {
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_velocity.y * Time.deltaTime);
         Vector3 direction = Vector3.down;
 
         for (int i = 0; i < VerticalRays; i++) {
@@ -119,7 +125,7 @@ public class PlayerController : MonoBehaviour {
             }
 
             transform.position += direction * (hit.distance - _bounds.extents.y);
-            _move.y = 0f;
+            _velocity.y = 0f;
             _isGrounded = true;
             _hasJumped = false;
             break;
@@ -130,7 +136,7 @@ public class PlayerController : MonoBehaviour {
         _isGrounded = false;
         var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_move.y);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_velocity.y * Time.deltaTime);
         Vector3 direction = Vector3.up;
 
         for (int i = 0; i < VerticalRays; i++) {
@@ -141,7 +147,7 @@ public class PlayerController : MonoBehaviour {
             if (hit.collider == null) continue;
             
             transform.position += direction * (hit.distance - _bounds.extents.y);
-            _move.y = 0f;
+            _velocity.y = 0f;
             _jumpVelocity = 0f;
             break;
         }
@@ -150,7 +156,7 @@ public class PlayerController : MonoBehaviour {
     void WallCheck() {
         var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
         var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
-        float rayLength = _bounds.extents.x + Mathf.Abs(_move.x);
+        float rayLength = _bounds.extents.x + Mathf.Abs(_velocity.x * Time.deltaTime);
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
         var direction = new Vector3(_facingDirection, 0, 0);
 
@@ -168,7 +174,7 @@ public class PlayerController : MonoBehaviour {
                 _wallSlideStartTime = Time.time;
             
             transform.position += direction * (hit.distance - _bounds.extents.x);
-            _move.x = 0f;
+            _velocity.x = 0f;
 
             if (_isGrounded) {
                 _onWall = false;

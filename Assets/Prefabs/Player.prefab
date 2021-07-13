@@ -98,10 +98,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   jumpText: {fileID: 0}
-  speed: 12
+  maxSpeed: 12
+  maxAcceleration: 400
   gravity: -20
   wallSlideMultiplier: 0.2
-  wallHangTime: 0.08
+  startWallSlideGraceTime: 0.08
+  stopWallSlideGraceTime: 0.04
   jumpForce: 50
   jumpDecay: 100
   groundLayers:
