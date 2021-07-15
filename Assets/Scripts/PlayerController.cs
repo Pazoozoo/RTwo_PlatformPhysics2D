@@ -169,35 +169,40 @@ public class PlayerController : MonoBehaviour {
         float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
         var direction = new Vector3(_facingDirection, 0, 0);
+        var collision = false;
+        var hit = new RaycastHit2D();
 
         for (int i = 0; i < HorizontalRays; i++) {
             Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (HorizontalRays - 1));
-            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
             Debug.DrawRay(origin, direction, Color.cyan, 1f);
-            
-            if (hit.collider == null) {
-                _onWall = false;
-                continue;
-            }
 
-            if (!_onWall)
-                _wallSlideStartTime = Time.time;
-            
-            transform.position += direction * (hit.distance - _bounds.extents.x);
-            _movement.x = 0f;
-
-            if (_isGrounded) {
-                _onWall = false;
-                return;
-            }
-
-            if (horizontalInput == _facingDirection) 
-                _onWall = true;
-            else {
-                _onWall = false;
-                _wallSlideStopTime = Time.time;
-            }
+            if (hit.collider == null) continue;
+            collision = true;
             break;
+        }
+        
+        if (!collision) {
+            _onWall = false;
+            return;
+        }
+        
+        if (!_onWall)
+            _wallSlideStartTime = Time.time;
+
+        transform.position += direction * (hit.distance - _bounds.extents.x);
+        _movement.x = 0f;
+
+        if (_isGrounded) {
+            _onWall = false;
+            return;
+        }
+
+        if (horizontalInput == _facingDirection) 
+            _onWall = true;
+        else {
+            _onWall = false;
+            _wallSlideStopTime = Time.time;
         }
     }
 }
