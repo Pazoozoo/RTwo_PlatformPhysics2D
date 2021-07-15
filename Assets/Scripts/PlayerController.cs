@@ -12,13 +12,14 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 1f)] float wallSlideMultiplier = 0.2f;
     [SerializeField, Range(0f, 0.3f)] float startWallSlideGraceTime = 0.08f;
     [SerializeField, Range(0f, 0.3f)] float stopWallSlideGraceTime = 0.04f;
+    [SerializeField, Range(0f, 0.3f)] float wallJumpFlyTime = 0.5f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
     [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _velocity;
     Vector3 _movement;
     int _facingDirection = 1;
-    float _jumpVelocity;
+    Vector3 _jumpVelocity;
     float _wallSlideStartTime;
     float _wallSlideStopTime;
     const float VerticalRays = 3f;
@@ -26,6 +27,8 @@ public class PlayerController : MonoBehaviour {
     const float RaycastOffset = 0.05f;
     bool _isGrounded;
     bool _hasJumped;
+    bool _hasWallJumped;
+    float _wallJumpTime;
     bool _onWall;
     Collider2D _col;
     Bounds _bounds;
@@ -52,7 +55,7 @@ public class PlayerController : MonoBehaviour {
         
         switch (_onWall) {
             case true: {
-                _jumpVelocity = 0f;
+                _jumpVelocity.y = 0f;
 
                 if (Time.time < _wallSlideStartTime + startWallSlideGraceTime)
                     _velocity.y = 0f;
@@ -65,20 +68,32 @@ public class PlayerController : MonoBehaviour {
                 break;
         }
         
-        if (Input.GetButton("Jump") && !_hasJumped && _isGrounded) {
-            _jumpVelocity = jumpForce;
-            _hasJumped = true;
+        if (Input.GetButton("Jump")) {
+            if (!_hasJumped && _isGrounded) {
+                _jumpVelocity.y = jumpForce;
+                _jumpVelocity.x = 0f;
+                _hasJumped = true;
+            } else if (!_hasWallJumped && _onWall) {
+                _jumpVelocity.y = jumpForce;
+                _jumpVelocity.x = jumpForce * -_facingDirection;
+                _hasWallJumped = true;
+                _wallJumpTime = Time.time;
+                Debug.Log("sanity: " + _jumpVelocity);
+            }
         }
 
-        if (_hasJumped && !_onWall) {
-            if (_jumpVelocity > 0f)
-                _jumpVelocity -= jumpDecay * Time.deltaTime;
+        if (_hasJumped || _hasWallJumped) {
+            if (_jumpVelocity.y > 0f)
+                _jumpVelocity.y -= jumpDecay * Time.deltaTime;
             
-            _velocity.y += _jumpVelocity;
+            if (_jumpVelocity.x > 0f)
+                _jumpVelocity.x -= jumpDecay * Time.deltaTime;
+            
+            _velocity += _jumpVelocity;
             
             if (_velocity.y < gravity) {
                 _velocity.y = gravity;
-                _jumpVelocity = 0f;
+                _jumpVelocity.y = 0f;
             }
         }
         
@@ -138,6 +153,7 @@ public class PlayerController : MonoBehaviour {
             _movement.y = 0f;
             _isGrounded = true;
             _hasJumped = false;
+            _hasWallJumped = false;
             break;
         }
     }
@@ -158,7 +174,7 @@ public class PlayerController : MonoBehaviour {
             
             transform.position += direction * (hit.distance - _bounds.extents.y);
             _movement.y = 0f;
-            _jumpVelocity = 0f;
+            _jumpVelocity = Vector3.zero;
             break;
         }
     }
@@ -186,6 +202,8 @@ public class PlayerController : MonoBehaviour {
             _onWall = false;
             return;
         }
+
+        _jumpVelocity.x = 0f;
         
         if (!_onWall)
             _wallSlideStartTime = Time.time;
@@ -204,5 +222,8 @@ public class PlayerController : MonoBehaviour {
             _onWall = false;
             _wallSlideStopTime = Time.time;
         }
+
+        if (_hasWallJumped && Time.time > _wallJumpTime + wallJumpFlyTime)
+            _onWall = false;
     }
 }
