@@ -30,6 +30,7 @@ public class PlayerController : MonoBehaviour {
     bool _hasWallJumped;
     float _wallJumpTime;
     bool _onWall;
+    bool _wallSlide;
     Collider2D _col;
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
@@ -58,13 +59,12 @@ public class PlayerController : MonoBehaviour {
         else if (_velocity.x < 0)
             _facingDirection = -1;
         
-        switch (_onWall) {
+        switch (_wallSlide) {
             case true: {
                 _jumpVelocity.y = _hasWallJumped ? _jumpVelocity.y : 0f;
 
-                if (WallSlideStartGraceTime) {
+                if (WallSlideStartGraceTime) 
                     _velocity.y = 0f;
-                }
                 else
                     _velocity.y *= wallSlideMultiplier;
                 break;
@@ -82,10 +82,12 @@ public class PlayerController : MonoBehaviour {
             } else if (!_hasWallJumped && _onWall) {
                 _facingDirection *= -1;
                 _velocity.x = 0f;
-                _jumpVelocity.y = jumpForce;
+                _jumpVelocity.y = jumpForce * 0.6f;
                 _jumpVelocity.x = jumpForce * _facingDirection * 0.2f;
                 _onWall = false;
+                Debug.Log("Wall Jump");
                 _hasWallJumped = true;
+                _wallSlide = false;
                 _wallJumpTime = Time.time;
             }
         }
@@ -110,7 +112,7 @@ public class PlayerController : MonoBehaviour {
         
         _movement = _velocity * Time.deltaTime;
         bool moving = _movement != Vector3.zero;
-
+        
         if (!moving) return;
         
         _bounds = _col.bounds;
@@ -119,7 +121,7 @@ public class PlayerController : MonoBehaviour {
         bool movingUp = _movement.y > 0;
         bool movingOnGround = _movement.y == 0 && movingHorizontally;
 
-        if (movingHorizontally || _onWall || _hasWallJumped) 
+        if (movingHorizontally || _onWall) 
             WallCheck();
         
         if (movingDown || movingOnGround)
@@ -165,6 +167,7 @@ public class PlayerController : MonoBehaviour {
             _isGrounded = true;
             _hasJumped = false;
             _hasWallJumped = false;
+            _wallSlide = false;
             break;
         }
     }
@@ -191,6 +194,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     void WallCheck() {
+        _wallSlide = false;
         var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
         var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
         float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
@@ -213,29 +217,20 @@ public class PlayerController : MonoBehaviour {
             _onWall = false;
             return;
         }
+
+        if (horizontalInput == _facingDirection) {
+            if (!_onWall)
+                _wallSlideStartTime = Time.time;
+            _wallSlide = true;
+        }
+        else if (_wallSlide) {
+            _wallSlideStopTime = Time.time;
+            _wallSlide = false;
+        }
         
         transform.position += direction * (hit.distance - _bounds.extents.x);
         _movement.x = 0f;
         _jumpVelocity.x = 0f;
-
-        if (!_onWall)
-            _wallSlideStartTime = Time.time;
-
-        if (_isGrounded) {
-            _onWall = false;
-            return;
-        }
-
-        if (horizontalInput == _facingDirection) 
-            _onWall = true;
-        else {
-            if (_onWall)
-                _wallSlideStopTime = Time.time;
-            _onWall = false;
-        }
-        
-        if (WallJumpedRecently) {
-            _onWall = false;
-        }
+        _onWall = !_isGrounded;
     }
 }
