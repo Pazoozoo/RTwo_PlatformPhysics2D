@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,10 +16,14 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 0.3f)] float wallJumpFlyTime = 0.5f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
     [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
+    [SerializeField, Range(0f, 200f)] float wallJumpForceMultiplierY = 1f;
+    [SerializeField, Range(0f, 200f)] float wallJumpForceMultiplierX = 0.15f;
+    [SerializeField, Range(0f, 200f)] float wallJumpDecayMultiplier = 0.5f;
     [SerializeField] LayerMask groundLayers;
     Vector3 _velocity;
     Vector3 _movement;
-    int _facingDirection = 1;
+    int _faceDirection = 1;
+    Direction _jumpDirection;
     Vector3 _jumpVelocity;
     float _wallSlideStartTime;
     float _wallSlideStopTime;
@@ -37,7 +42,12 @@ public class PlayerController : MonoBehaviour {
 
     bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
     bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
-    bool WallJumpedRecently => Time.time < _wallJumpTime + wallJumpFlyTime;
+    bool IsWallJumping => Time.time < _wallJumpTime + wallJumpFlyTime && _hasWallJumped;
+
+    enum Direction {
+        Right,
+        Left
+    }
     //TODO replace bools with state enum
 
     void Awake() {
@@ -55,9 +65,9 @@ public class PlayerController : MonoBehaviour {
         _velocity.y = _isGrounded ? 0f : gravity;
 
         if (_velocity.x > 0)
-            _facingDirection = 1;
+            _faceDirection = 1;
         else if (_velocity.x < 0)
-            _facingDirection = -1;
+            _faceDirection = -1;
         
         switch (_wallSlide) {
             case true: {
@@ -74,18 +84,19 @@ public class PlayerController : MonoBehaviour {
                 break;
         }
         
-        if (Input.GetButton("Jump")) {
+        if (Input.GetButtonDown("Jump")) {
             if (!_hasJumped && _isGrounded) {
                 _jumpVelocity.y = jumpForce;
                 _jumpVelocity.x = 0f;
                 _hasJumped = true;
             } else if (!_hasWallJumped && _onWall) {
-                _facingDirection *= -1;
+                _faceDirection *= -1;
+                _jumpDirection = _faceDirection == 1 ? Direction.Right : Direction.Left;
+                _velocity.y = 0f;
                 _velocity.x = 0f;
-                _jumpVelocity.y = jumpForce * 0.6f;
-                _jumpVelocity.x = jumpForce * _facingDirection * 0.2f;
+                _jumpVelocity.y = jumpForce * wallJumpForceMultiplierY;
+                _jumpVelocity.x = jumpForce * _faceDirection * wallJumpForceMultiplierX;
                 _onWall = false;
-                Debug.Log("Wall Jump");
                 _hasWallJumped = true;
                 _wallSlide = false;
                 _wallJumpTime = Time.time;
@@ -103,11 +114,16 @@ public class PlayerController : MonoBehaviour {
                 _jumpVelocity.y = 0f;
             }
             
-            if (_jumpVelocity.x > 0f)
-                _jumpVelocity.x -= jumpDecay * Time.deltaTime;
-            else if (_jumpVelocity.x < 0f)
-                _jumpVelocity.x += jumpDecay * Time.deltaTime;
-            //TODO stop x at 0, use facing direction?
+            if (_jumpVelocity.x != 0f) {
+                if (_jumpVelocity.x > 0f && _jumpDirection == Direction.Right) {
+                    _jumpVelocity.x -= jumpDecay * Time.deltaTime * wallJumpDecayMultiplier;
+                    _jumpVelocity.x = Mathf.Max(_jumpVelocity.x, 0f);
+                }
+                else if (_jumpVelocity.x < 0f && _jumpDirection == Direction.Left) {
+                    _jumpVelocity.x += jumpDecay * Time.deltaTime * wallJumpDecayMultiplier;
+                    _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
+                }
+            }
         }
         
         _movement = _velocity * Time.deltaTime;
@@ -199,7 +215,7 @@ public class PlayerController : MonoBehaviour {
         var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
         float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
-        var direction = new Vector3(_facingDirection, 0, 0);
+        var direction = new Vector3(_faceDirection, 0, 0);
         var collision = false;
         var hit = new RaycastHit2D();
 
@@ -218,7 +234,7 @@ public class PlayerController : MonoBehaviour {
             return;
         }
 
-        if (horizontalInput == _facingDirection) {
+        if (horizontalInput == _faceDirection) {
             if (!_onWall)
                 _wallSlideStartTime = Time.time;
             _wallSlide = true;
