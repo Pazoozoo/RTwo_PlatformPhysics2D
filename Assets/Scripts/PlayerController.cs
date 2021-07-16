@@ -33,18 +33,23 @@ public class PlayerController : MonoBehaviour {
     Collider2D _col;
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
+
+    bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
+    bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
+    bool WallJumpedRecently => Time.time < _wallJumpTime + wallJumpFlyTime;
     //TODO replace bools with state enum
 
     void Awake() {
         _col = GetComponent<Collider2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        _wallJumpTime -= wallJumpFlyTime;
     }
 
     void Update() {
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
         float maxSpeedChange = _isGrounded || _onWall ? maxAcceleration : maxAirAcceleration;
         maxSpeedChange *= Time.deltaTime;
-        
+
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
         _velocity.y = _isGrounded ? 0f : gravity;
 
@@ -55,15 +60,16 @@ public class PlayerController : MonoBehaviour {
         
         switch (_onWall) {
             case true: {
-                _jumpVelocity.y = 0f;
+                _jumpVelocity.y = _hasWallJumped ? _jumpVelocity.y : 0f;
 
-                if (Time.time < _wallSlideStartTime + startWallSlideGraceTime)
+                if (WallSlideStartGraceTime) {
                     _velocity.y = 0f;
+                }
                 else
                     _velocity.y *= wallSlideMultiplier;
                 break;
             }
-            case false when Time.time < _wallSlideStopTime + stopWallSlideGraceTime:
+            case false when WallSlideStopGraceTime:
                 _velocity.y = 0f;
                 break;
         }
@@ -74,27 +80,32 @@ public class PlayerController : MonoBehaviour {
                 _jumpVelocity.x = 0f;
                 _hasJumped = true;
             } else if (!_hasWallJumped && _onWall) {
+                _facingDirection *= -1;
+                _velocity.x = 0f;
                 _jumpVelocity.y = jumpForce;
-                _jumpVelocity.x = jumpForce * -_facingDirection;
+                _jumpVelocity.x = jumpForce * _facingDirection * 0.2f;
+                _onWall = false;
                 _hasWallJumped = true;
                 _wallJumpTime = Time.time;
-                Debug.Log("sanity: " + _jumpVelocity);
             }
         }
 
         if (_hasJumped || _hasWallJumped) {
+            _velocity += _jumpVelocity;
+            
             if (_jumpVelocity.y > 0f)
                 _jumpVelocity.y -= jumpDecay * Time.deltaTime;
-            
-            if (_jumpVelocity.x > 0f)
-                _jumpVelocity.x -= jumpDecay * Time.deltaTime;
-            
-            _velocity += _jumpVelocity;
             
             if (_velocity.y < gravity) {
                 _velocity.y = gravity;
                 _jumpVelocity.y = 0f;
             }
+            
+            if (_jumpVelocity.x > 0f)
+                _jumpVelocity.x -= jumpDecay * Time.deltaTime;
+            else if (_jumpVelocity.x < 0f)
+                _jumpVelocity.x += jumpDecay * Time.deltaTime;
+            //TODO stop x at 0, use facing direction?
         }
         
         _movement = _velocity * Time.deltaTime;
@@ -108,7 +119,7 @@ public class PlayerController : MonoBehaviour {
         bool movingUp = _movement.y > 0;
         bool movingOnGround = _movement.y == 0 && movingHorizontally;
 
-        if (movingHorizontally || _onWall) 
+        if (movingHorizontally || _onWall || _hasWallJumped) 
             WallCheck();
         
         if (movingDown || movingOnGround)
@@ -202,14 +213,13 @@ public class PlayerController : MonoBehaviour {
             _onWall = false;
             return;
         }
-
-        _jumpVelocity.x = 0f;
         
-        if (!_onWall)
-            _wallSlideStartTime = Time.time;
-
         transform.position += direction * (hit.distance - _bounds.extents.x);
         _movement.x = 0f;
+        _jumpVelocity.x = 0f;
+
+        if (!_onWall)
+            _wallSlideStartTime = Time.time;
 
         if (_isGrounded) {
             _onWall = false;
@@ -219,11 +229,13 @@ public class PlayerController : MonoBehaviour {
         if (horizontalInput == _facingDirection) 
             _onWall = true;
         else {
+            if (_onWall)
+                _wallSlideStopTime = Time.time;
             _onWall = false;
-            _wallSlideStopTime = Time.time;
         }
-
-        if (_hasWallJumped && Time.time > _wallJumpTime + wallJumpFlyTime)
+        
+        if (WallJumpedRecently) {
             _onWall = false;
+        }
     }
 }

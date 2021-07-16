@@ -100,10 +100,12 @@ MonoBehaviour:
   jumpText: {fileID: 0}
   maxSpeed: 12
   maxAcceleration: 400
+  maxAirAcceleration: 400
   gravity: -20
   wallSlideMultiplier: 0.2
   startWallSlideGraceTime: 0.08
   stopWallSlideGraceTime: 0.04
+  wallJumpFlyTime: 0.3
   jumpForce: 50
   jumpDecay: 100
   groundLayers:
