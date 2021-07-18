@@ -108,9 +108,7 @@ MonoBehaviour:
   wallJumpFlyTime: 0.3
   jumpForce: 50
   jumpDecay: 100
-  wallJumpForceMultiplierY: 1
-  wallJumpForceMultiplierX: 0.11
-  wallJumpDecayMultiplier: 0.8
+  wallJumpForce: {x: 7.5, y: 40}
   groundLayers:
     serializedVersion: 2
     m_Bits: 8
