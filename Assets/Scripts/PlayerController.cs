@@ -13,10 +13,11 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 1f)] float wallSlideMultiplier = 0.2f;
     [SerializeField, Range(0f, 0.3f)] float startWallSlideGraceTime = 0.08f;
     [SerializeField, Range(0f, 0.3f)] float stopWallSlideGraceTime = 0.04f;
-    [SerializeField, Range(0f, 1f)] float wallJumpFlyTime = 0.5f;
+    [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
     [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
-    [SerializeField, Range(0f, 5f)] int wallJumps = 2;
+    [SerializeField, Range(0f, 5f)] int wallJumps = 2;    
+    [SerializeField, Range(0f, 1f)] float wallJumpFlyTime = 0.5f;
     [SerializeField] Vector2 wallJumpForce;
     [SerializeField] LayerMask groundLayers;
     
@@ -30,7 +31,8 @@ public class PlayerController : MonoBehaviour {
     float _wallSlideStartTime;
     float _wallSlideStopTime;
     float _wallJumpTime;
-    
+    float _jumpInputTime;
+
     bool _onGround;
     bool _onWall;
     bool _wallSliding;
@@ -53,6 +55,7 @@ public class PlayerController : MonoBehaviour {
     bool CanWallJump => wallJumps > 0 && _onWall;
     bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
     bool JumpingLeft => _jumpVelocity.x < 0f && _jumpDirection == Left;
+    bool JumpInput => Time.time - _jumpInputTime < jumpInputLeeway;
 
     //TODO replace bools with state enum
 
@@ -91,8 +94,11 @@ public class PlayerController : MonoBehaviour {
                 break;
         }
         
-        if (Input.GetButtonDown("Jump")) {
-            //TODO jumpForce * normalized jumpDirectionVector
+        if (Input.GetButtonDown("Jump"))
+            _jumpInputTime = Time.time;
+        
+        if (JumpInput) {
+            //TODO jumpForce * normalized jumpDirectionVector (??)
             if (_onGround) {
                 _jumpVelocity.y = jumpForce;
                 _jumpVelocity.x = 0f;
