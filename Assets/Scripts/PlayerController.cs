@@ -15,10 +15,11 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 0.3f)] float stopWallSlideGraceTime = 0.04f;
     [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
     [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
-    [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
-    [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
-    [SerializeField, Range(0f, 5f)] int jumps = 2;    
-    [SerializeField, Range(0f, 5f)] int wallJumps = 2;    
+    [SerializeField, Range(0f, 100f)] float jumpForce = 50f;
+    [SerializeField, Range(0f, 200f)] float jumpForceDecay = 100f;
+    [SerializeField, Range(0f, 5f)] int jumps = 2;
+    [SerializeField, Range(0f, 5f)] int wallJumps = 2;
+    [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f;
     [SerializeField] Vector2 wallJumpForce;
     [SerializeField] LayerMask groundLayers;
     
@@ -34,6 +35,7 @@ public class PlayerController : MonoBehaviour {
     float _wallSlideStartTime;
     float _wallSlideStopTime;
     float _jumpInputTime = -10f;
+    float _jumpTime;
     float _leaveGroundTime;
     float _leaveWallTime;
 
@@ -51,21 +53,23 @@ public class PlayerController : MonoBehaviour {
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
 
-    bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
-    bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
+    bool OnGround => _onGround || CloseToGround;
+    bool OnWall => _onWall || CloseToWall;
+    bool InAir => !OnGround && !OnWall;
+    
+    bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
+    bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
+    bool CanAirJump => jumps > 0 && JumpReady && InAir;
+    bool CanWallJump => wallJumps > 0 && JumpReady && OnWall && !OnGround;
     bool Jumping => _jumpVelocity != Vector3.zero;
-    bool CanJump => _onGround || CloseToGround;
-    bool CanAirJump => jumps > 0 && InAir;
-    bool CanWallJump => wallJumps > 0 && (_onWall || CloseToWall) && !_onGround;
     bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
     bool JumpingLeft => _jumpVelocity.x < 0f && _jumpDirection == Left;
-
-    bool JumpInput => Time.time - _jumpInputTime < jumpInputLeeway;
-    bool CloseToGround => Time.time - _leaveGroundTime < jumpOffPlatformLeeway;
-    bool CloseToWall => Time.time - _leaveWallTime < jumpOffPlatformLeeway;
-    bool InAir => !_onGround && !_onWall;
-                      
-
+    
+    bool CloseToGround => Time.time < _leaveGroundTime + jumpOffPlatformLeeway;
+    bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
+    bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
+    bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
+    
     //TODO replace bools with state enum
 
     void Awake() {
@@ -107,15 +111,13 @@ public class PlayerController : MonoBehaviour {
             _jumpInputTime = Time.time;
         
         if (JumpInput) {
-            Debug.Log("JumpInput");
-            if (CanJump || CanAirJump) 
+            if (OnGround || CanAirJump) 
                 Jump();
             else if (CanWallJump) 
                 WallJump();
         }
 
         if (Jumping) {
-            Debug.Log("Jumping");
             _velocity += _jumpVelocity;
             ReduceJumpVelocity();
         }
@@ -139,6 +141,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     void Jump() {
+        _jumpTime = Time.time;
         jumps -= 1;
         _jumpVelocity.y = jumpForce;
         _jumpVelocity.x = 0f;
@@ -146,6 +149,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     void WallJump() {
+        _jumpTime = Time.time;
         wallJumps -= 1;
         _faceDirection *= -1;
         _jumpDirection = _faceDirection;
@@ -175,7 +179,7 @@ public class PlayerController : MonoBehaviour {
 
     void ReduceJumpVelocity() {
         if (_jumpVelocity.y > 0f)
-            _jumpVelocity.y -= jumpDecay * Time.deltaTime;
+            _jumpVelocity.y -= jumpForceDecay * Time.deltaTime;
 
         if (_velocity.y < gravity) {
             _velocity.y = gravity;
@@ -185,11 +189,11 @@ public class PlayerController : MonoBehaviour {
         if (_jumpVelocity.x == 0f) return;
         
         if (JumpingRight) {
-            _jumpVelocity.x -= jumpDecay * Time.deltaTime;
+            _jumpVelocity.x -= jumpForceDecay * Time.deltaTime;
             _jumpVelocity.x = Mathf.Max(_jumpVelocity.x, 0f);
         }
         else if (JumpingLeft) {
-            _jumpVelocity.x += jumpDecay * Time.deltaTime;
+            _jumpVelocity.x += jumpForceDecay * Time.deltaTime;
             _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
         }
     }

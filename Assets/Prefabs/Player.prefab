@@ -97,7 +97,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f68d46e3fe8d1814ea220ab6d3c2ccd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpText: {fileID: 0}
   maxSpeed: 12
   maxAcceleration: 400
   maxAirAcceleration: 400
@@ -107,11 +106,11 @@ MonoBehaviour:
   stopWallSlideGraceTime: 0.04
   jumpInputLeeway: 0.1
   jumpOffPlatformLeeway: 0.15
-  jumpForce: 50
+  jumpForce: 43
   jumpDecay: 100
+  jumps: 2
   wallJumps: 2
-  wallJumpFlyTime: 0.3
-  wallJumpForce: {x: 7.5, y: 40}
+  wallJumpForce: {x: 7, y: 40}
   groundLayers:
     serializedVersion: 2
     m_Bits: 8
