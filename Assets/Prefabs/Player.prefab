@@ -105,9 +105,12 @@ MonoBehaviour:
   wallSlideMultiplier: 0.2
   startWallSlideGraceTime: 0.08
   stopWallSlideGraceTime: 0.04
-  wallJumpFlyTime: 0.3
+  jumpInputLeeway: 0.1
+  jumpOffPlatformLeeway: 0.15
   jumpForce: 50
   jumpDecay: 100
+  wallJumps: 2
+  wallJumpFlyTime: 0.3
   wallJumpForce: {x: 7.5, y: 40}
   groundLayers:
     serializedVersion: 2
