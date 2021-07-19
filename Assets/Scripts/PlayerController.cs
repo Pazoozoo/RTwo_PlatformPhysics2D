@@ -1,11 +1,11 @@
 using System;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Collider2D))]
 
 public class PlayerController : MonoBehaviour {
-    public Text jumpText;
     [SerializeField, Range(0f, 50f)] float maxSpeed = 12f;
     [SerializeField, Range(0f, 800f)] float maxAcceleration = 400f;
     [SerializeField, Range(0f, 800f)] float maxAirAcceleration = 400f;
@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 25f;
     [SerializeField, Range(0f, 200f)] float jumpDecay = 50f;
+    [SerializeField, Range(0f, 5f)] int jumps = 2;    
     [SerializeField, Range(0f, 5f)] int wallJumps = 2;    
     [SerializeField] Vector2 wallJumpForce;
     [SerializeField] LayerMask groundLayers;
@@ -27,11 +28,12 @@ public class PlayerController : MonoBehaviour {
     
     int _faceDirection = 1;
     int _jumpDirection;
+    int _maxJumps;
     int _maxWallJumps;
     
     float _wallSlideStartTime;
     float _wallSlideStopTime;
-    float _jumpInputTime;
+    float _jumpInputTime = -10f;
     float _leaveGroundTime;
     float _leaveWallTime;
 
@@ -53,13 +55,15 @@ public class PlayerController : MonoBehaviour {
     bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
     bool Jumping => _jumpVelocity != Vector3.zero;
     bool CanJump => _onGround || CloseToGround;
-    bool CanWallJump => wallJumps > 0 && (_onWall || CloseToWall);
+    bool CanAirJump => jumps > 0 && InAir;
+    bool CanWallJump => wallJumps > 0 && (_onWall || CloseToWall) && !_onGround;
     bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
     bool JumpingLeft => _jumpVelocity.x < 0f && _jumpDirection == Left;
 
     bool JumpInput => Time.time - _jumpInputTime < jumpInputLeeway;
     bool CloseToGround => Time.time - _leaveGroundTime < jumpOffPlatformLeeway;
     bool CloseToWall => Time.time - _leaveWallTime < jumpOffPlatformLeeway;
+    bool InAir => !_onGround && !_onWall;
                       
 
     //TODO replace bools with state enum
@@ -67,6 +71,7 @@ public class PlayerController : MonoBehaviour {
     void Awake() {
         _col = GetComponent<Collider2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        _maxJumps = jumps;
         _maxWallJumps = wallJumps;
     }
 
@@ -102,68 +107,24 @@ public class PlayerController : MonoBehaviour {
             _jumpInputTime = Time.time;
         
         if (JumpInput) {
-            //TODO jumpForce * normalized jumpDirectionVector (??)
-            if (CanJump) {
-                _jumpVelocity.y = jumpForce;
-                _jumpVelocity.x = 0f;
-            } else if (CanWallJump) {
-                wallJumps -= 1;
-                _faceDirection *= -1;
-                _jumpDirection = _faceDirection;
-                _velocity.y = 0f;
-                _velocity.x = 0f;
-                _jumpVelocity.y = wallJumpForce.y;
-                _jumpVelocity.x = wallJumpForce.x * _faceDirection;
-                _onWall = false;
-                _wallSliding = false;
-            }
+            Debug.Log("JumpInput");
+            if (CanJump || CanAirJump) 
+                Jump();
+            else if (CanWallJump) 
+                WallJump();
         }
 
         if (Jumping) {
+            Debug.Log("Jumping");
             _velocity += _jumpVelocity;
-            
-            if (_jumpVelocity.y > 0f)
-                _jumpVelocity.y -= jumpDecay * Time.deltaTime;
-            
-            if (_velocity.y < gravity) {
-                _velocity.y = gravity;
-                _jumpVelocity.y = 0f;
-            }
-            
-            if (_jumpVelocity.x != 0f) {
-                if (JumpingRight) {
-                    _jumpVelocity.x -= jumpDecay * Time.deltaTime;
-                    _jumpVelocity.x = Mathf.Max(_jumpVelocity.x, 0f);
-                }
-                else if (JumpingLeft) {
-                    _jumpVelocity.x += jumpDecay * Time.deltaTime;
-                    _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
-                }
-            }
+            ReduceJumpVelocity();
         }
         
         _movement = _velocity * Time.deltaTime;
         bool moving = _movement != Vector3.zero;
         
-        if (!moving) return;
-        
-        _bounds = _col.bounds;
-        bool movingHorizontally = _movement.x != 0;
-        bool movingDown = _movement.y < 0;
-        bool movingUp = _movement.y > 0;
-        bool movingOnGround = _movement.y == 0 && movingHorizontally;
-
-        if (movingHorizontally || !_onGround) 
-            WallCheck();
-        
-        if (movingDown || movingOnGround)
-            GroundCheck();
-        else if (movingUp)
-            CeilingCheck();
-    }
-    
-    void FixedUpdate() {
-        jumpText.text = _jumpVelocity.ToString("F");
+        if (moving)
+            CheckForCollisions();
     }
 
     void LateUpdate() {
@@ -175,6 +136,62 @@ public class PlayerController : MonoBehaviour {
             _spriteRenderer.color = Color.yellow;
 
         transform.position += _movement;
+    }
+    
+    void Jump() {
+        jumps -= 1;
+        _jumpVelocity.y = jumpForce;
+        _jumpVelocity.x = 0f;
+        _jumpInputTime = 0f;
+    }
+    
+    void WallJump() {
+        wallJumps -= 1;
+        _faceDirection *= -1;
+        _jumpDirection = _faceDirection;
+        _velocity.y = 0f;
+        _velocity.x = 0f;
+        _jumpVelocity.y = wallJumpForce.y;
+        _jumpVelocity.x = wallJumpForce.x * _jumpDirection;
+        _onWall = false;
+        _wallSliding = false;
+    }
+
+    void CheckForCollisions() {
+        _bounds = _col.bounds;
+        bool movingHorizontally = _movement.x != 0;
+        bool movingDown = _movement.y < 0;
+        bool movingUp = _movement.y > 0;
+        bool movingOnGround = _movement.y == 0 && movingHorizontally;
+
+        if (movingHorizontally || !_onGround)
+            WallCheck();
+
+        if (movingDown || movingOnGround)
+            GroundCheck();
+        else if (movingUp)
+            CeilingCheck();
+    }
+
+    void ReduceJumpVelocity() {
+        if (_jumpVelocity.y > 0f)
+            _jumpVelocity.y -= jumpDecay * Time.deltaTime;
+
+        if (_velocity.y < gravity) {
+            _velocity.y = gravity;
+            _jumpVelocity.y = 0f;
+        }
+
+        if (_jumpVelocity.x == 0f) return;
+        
+        if (JumpingRight) {
+            _jumpVelocity.x -= jumpDecay * Time.deltaTime;
+            _jumpVelocity.x = Mathf.Max(_jumpVelocity.x, 0f);
+        }
+        else if (JumpingLeft) {
+            _jumpVelocity.x += jumpDecay * Time.deltaTime;
+            _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
+        }
     }
 
     //TODO refactor collision checks (DRY), maybe move them to a new class 
@@ -205,6 +222,7 @@ public class PlayerController : MonoBehaviour {
         
         transform.position += direction * (hit.distance - _bounds.extents.y);
         _movement.y = 0f;
+        jumps = _maxJumps;
         wallJumps = _maxWallJumps;
         _onGround = true;
         _wallSliding = false;
@@ -216,19 +234,24 @@ public class PlayerController : MonoBehaviour {
         var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
         float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
         Vector3 direction = Vector3.up;
+        var collision = false;
+        var hit = new RaycastHit2D();
 
         for (int i = 0; i < VerticalRays; i++) {
             Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
-            RaycastHit2D hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
             Debug.DrawRay(origin, Vector3.up, Color.cyan, 1f);
 
             if (hit.collider == null) continue;
-            
-            transform.position += direction * (hit.distance - _bounds.extents.y);
-            _movement.y = 0f;
-            _jumpVelocity = Vector3.zero;
+            collision = true;
             break;
         }
+
+        if (!collision) return;
+        
+        transform.position += direction * (hit.distance - _bounds.extents.y);
+        _movement.y = 0f;
+        _jumpVelocity = Vector3.zero;
     }
 
     void WallCheck() {
