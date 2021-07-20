@@ -1,7 +1,5 @@
 using System;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
 [RequireComponent(typeof(Collider2D))]
 
@@ -69,6 +67,11 @@ public class PlayerController : MonoBehaviour {
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
     bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
     bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
+    
+    enum Axis {
+        Horizontal,
+        Vertical
+    }
     
     //TODO replace bools with state enum
 
@@ -198,24 +201,44 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
-    //TODO refactor collision checks (DRY), maybe move them to a new class 
-    void GroundCheck() {
-        var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
-        var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
-        Vector3 direction = Vector3.down;
-        var collision = false;
-        var hit = new RaycastHit2D();
+    void DoCollisionCheck(Vector3 direction, Axis axis, out bool collision, out RaycastHit2D hit) {
+        collision = false;
+        hit = new RaycastHit2D();
+        var startPoint = new Vector2();
+        var endPoint = new Vector2();
+        float rayLength = 0f;
+        float rayAmount = 0f;
+        
+        switch (axis) {
+            case Axis.Vertical:
+                startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
+                endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
+                rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
+                rayAmount = VerticalRays;
+                break;
+            case Axis.Horizontal:
+                startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
+                endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
+                rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
+                rayAmount = HorizontalRays;
+                break;
+        }
 
-        for (int i = 0; i < VerticalRays; i++) {
-            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
+        for (int i = 0; i < rayAmount; i++) {
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (rayAmount - 1));
             hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
             Debug.DrawRay(origin, direction, Color.cyan, 1f);
 
             if (hit.collider == null) continue;
             collision = true;
-            break;
+            return;
         }
+    }
+
+    void GroundCheck() {
+        Vector3 direction = Vector3.down;
+        
+        DoCollisionCheck(direction, Axis.Vertical, out bool collision, out RaycastHit2D hit);
 
         if (!collision) {
             if (_onGround)
@@ -226,57 +249,31 @@ public class PlayerController : MonoBehaviour {
         
         transform.position += direction * (hit.distance - _bounds.extents.y);
         _movement.y = 0f;
+        
         jumps = _maxJumps;
         wallJumps = _maxWallJumps;
+        
         _onGround = true;
         _wallSliding = false;
     }
 
     void CeilingCheck() {
         _onGround = false;
-        var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
-        var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-        float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
         Vector3 direction = Vector3.up;
-        var collision = false;
-        var hit = new RaycastHit2D();
-
-        for (int i = 0; i < VerticalRays; i++) {
-            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (VerticalRays - 1));
-            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
-            Debug.DrawRay(origin, Vector3.up, Color.cyan, 1f);
-
-            if (hit.collider == null) continue;
-            collision = true;
-            break;
-        }
+        
+        DoCollisionCheck(direction,Axis.Vertical, out bool collision, out RaycastHit2D hit);
 
         if (!collision) return;
         
-        transform.position += direction * (hit.distance - _bounds.extents.y);
-        _movement.y = 0f;
+        AdjustPosition(direction, hit.distance, Axis.Vertical);
         _jumpVelocity = Vector3.zero;
     }
 
     void WallCheck() {
         _wallSliding = false;
-        var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
-        var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
-        float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
-        int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
         var direction = new Vector3(_faceDirection, 0, 0);
-        var collision = false;
-        var hit = new RaycastHit2D();
-
-        for (int i = 0; i < HorizontalRays; i++) {
-            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (HorizontalRays - 1));
-            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
-            Debug.DrawRay(origin, direction, Color.cyan, 1f);
-
-            if (hit.collider == null) continue;
-            collision = true;
-            break;
-        }
+        
+        DoCollisionCheck(direction, Axis.Horizontal, out bool collision, out RaycastHit2D hit);
         
         if (!collision) {
             if (_onWall)
@@ -285,6 +282,8 @@ public class PlayerController : MonoBehaviour {
             return;
         }
 
+        int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
+        
         if (horizontalInput == _faceDirection) {
             if (!_onWall)
                 _wallSlideStartTime = Time.time;
@@ -295,9 +294,25 @@ public class PlayerController : MonoBehaviour {
             _wallSliding = false;
         }
         
-        transform.position += direction * (hit.distance - _bounds.extents.x);
-        _movement.x = 0f;
-        _jumpVelocity.x = 0f;
+        AdjustPosition(direction, hit.distance, Axis.Horizontal);
         _onWall = !_onGround;
+    }
+
+    void AdjustPosition(Vector3 direction, float hitDistance, Axis axis) {
+        float extents = 0f;
+        
+        switch (axis) {
+            case Axis.Vertical:
+                extents = _bounds.extents.y;
+                _movement.y = 0f;
+                break;
+            case Axis.Horizontal:
+                extents = _bounds.extents.x;
+                _movement.x = 0f;
+                _jumpVelocity.x = 0f;
+                break;
+        }
+        
+        transform.position += direction * (hitDistance - extents);
     }
 }
