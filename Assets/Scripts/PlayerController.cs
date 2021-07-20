@@ -82,6 +82,8 @@ public class PlayerController : MonoBehaviour {
         _maxWallJumps = wallJumps;
     }
 
+    #region Update
+
     void Update() {
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
         float maxSpeedChange = _onGround || _onWall ? maxAcceleration : maxAirAcceleration;
@@ -143,6 +145,10 @@ public class PlayerController : MonoBehaviour {
         transform.position += _movement;
     }
     
+    #endregion
+    
+    #region Jumps
+    
     void Jump() {
         _jumpTime = Time.time;
         jumps -= 1;
@@ -163,23 +169,7 @@ public class PlayerController : MonoBehaviour {
         _onWall = false;
         _wallSliding = false;
     }
-
-    void CheckForCollisions() {
-        _bounds = _col.bounds;
-        bool movingHorizontally = _movement.x != 0;
-        bool movingDown = _movement.y < 0;
-        bool movingUp = _movement.y > 0;
-        bool movingOnGround = _movement.y == 0 && movingHorizontally;
-
-        if (movingHorizontally || !_onGround)
-            WallCheck();
-
-        if (movingDown || movingOnGround)
-            GroundCheck();
-        else if (movingUp)
-            CeilingCheck();
-    }
-
+    
     void ReduceJumpVelocity() {
         if (_jumpVelocity.y > 0f)
             _jumpVelocity.y -= jumpForceDecay * Time.deltaTime;
@@ -200,80 +190,32 @@ public class PlayerController : MonoBehaviour {
             _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
         }
     }
+    
+    #endregion
 
-    void DoCollisionCheck(Vector3 direction, Axis axis, out bool collision, out RaycastHit2D hit) {
-        collision = false;
-        hit = new RaycastHit2D();
-        var startPoint = new Vector2();
-        var endPoint = new Vector2();
-        float rayLength = 0f;
-        float rayAmount = 0f;
-        
-        switch (axis) {
-            case Axis.Vertical:
-                startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
-                endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
-                rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
-                rayAmount = VerticalRays;
-                break;
-            case Axis.Horizontal:
-                startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
-                endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
-                rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
-                rayAmount = HorizontalRays;
-                break;
-        }
+    #region Collisions
+    
+    void CheckForCollisions() {
+        _bounds = _col.bounds;
+        bool movingHorizontally = _movement.x != 0;
+        bool movingDown = _movement.y < 0;
+        bool movingUp = _movement.y > 0;
+        bool movingOnGround = _movement.y == 0 && movingHorizontally;
 
-        for (int i = 0; i < rayAmount; i++) {
-            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (rayAmount - 1));
-            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
-            Debug.DrawRay(origin, direction, Color.cyan, 1f);
+        if (movingHorizontally || !_onGround)
+            WallCheck();
 
-            if (hit.collider == null) continue;
-            collision = true;
-            return;
-        }
+        if (movingDown || movingOnGround)
+            GroundCheck();
+        else if (movingUp)
+            CeilingCheck();
     }
-
-    void GroundCheck() {
-        Vector3 direction = Vector3.down;
-        
-        DoCollisionCheck(direction, Axis.Vertical, out bool collision, out RaycastHit2D hit);
-
-        if (!collision) {
-            if (_onGround)
-                _leaveGroundTime = Time.time;
-            _onGround = false;
-            return;
-        }
-        
-        transform.position += direction * (hit.distance - _bounds.extents.y);
-        _movement.y = 0f;
-        
-        jumps = _maxJumps;
-        wallJumps = _maxWallJumps;
-        
-        _onGround = true;
-        _wallSliding = false;
-    }
-
-    void CeilingCheck() {
-        _onGround = false;
-        Vector3 direction = Vector3.up;
-        
-        DoCollisionCheck(direction,Axis.Vertical, out bool collision, out RaycastHit2D hit);
-
-        if (!collision) return;
-        
-        AdjustPosition(direction, hit.distance, Axis.Vertical);
-        _jumpVelocity = Vector3.zero;
-    }
-
+    
     void WallCheck() {
         _wallSliding = false;
         var direction = new Vector3(_faceDirection, 0, 0);
         
-        DoCollisionCheck(direction, Axis.Horizontal, out bool collision, out RaycastHit2D hit);
+        HorizontalCollisionCheck(direction, out bool collision);
         
         if (!collision) {
             if (_onWall)
@@ -289,13 +231,74 @@ public class PlayerController : MonoBehaviour {
                 _wallSlideStartTime = Time.time;
             _wallSliding = true;
         }
+        //TODO this statement is always false
         else if (_wallSliding) {
             _wallSlideStopTime = Time.time;
             _wallSliding = false;
         }
         
-        AdjustPosition(direction, hit.distance, Axis.Horizontal);
         _onWall = !_onGround;
+    }
+    
+    void GroundCheck() {
+        VerticalCollisionCheck(Vector3.down, out bool collision);
+
+        if (!collision) {
+            if (_onGround)
+                _leaveGroundTime = Time.time;
+            _onGround = false;
+            return;
+        }
+
+        jumps = _maxJumps;
+        wallJumps = _maxWallJumps;
+        
+        _onGround = true;
+        _wallSliding = false;
+    }
+
+    void CeilingCheck() {
+        _onGround = false;
+        VerticalCollisionCheck(Vector3.up, out bool collision);
+
+        if (collision) 
+            _jumpVelocity = Vector3.zero;
+    }
+
+    void VerticalCollisionCheck(Vector3 direction, out bool collision) {
+        var startPoint = new Vector2(_bounds.min.x + RaycastOffset, _bounds.center.y);
+        var endPoint = new Vector2(_bounds.max.x - RaycastOffset, _bounds.center.y);
+        float rayLength = _bounds.extents.y + Mathf.Abs(_movement.y);
+        
+        collision = DoCollisionCheck(startPoint, endPoint, direction, rayLength, VerticalRays, out RaycastHit2D hit);
+        
+        if (collision)
+            AdjustPosition(direction, hit.distance, Axis.Vertical);
+    }
+    
+    void HorizontalCollisionCheck(Vector3 direction, out bool collision) {
+        var startPoint = new Vector2(_bounds.center.x, _bounds.min.y + RaycastOffset);
+        var endPoint = new Vector2(_bounds.center.x, _bounds.max.y - RaycastOffset);
+        float rayLength = _bounds.extents.x + Mathf.Abs(_movement.x);
+        
+        collision = DoCollisionCheck(startPoint, endPoint, direction, rayLength, HorizontalRays, out RaycastHit2D hit);
+        
+        if (collision)
+            AdjustPosition(direction, hit.distance, Axis.Horizontal);
+    }
+    
+    bool DoCollisionCheck(Vector2 startPoint, Vector2 endPoint, Vector3 direction, float rayLength, float rayAmount, out RaycastHit2D hit) {
+        hit = new RaycastHit2D();
+        
+        for (int i = 0; i < rayAmount; i++) {
+            Vector2 origin = Vector2.Lerp(startPoint, endPoint, i / (rayAmount - 1));
+            hit = Physics2D.Raycast(origin, direction, rayLength, groundLayers);
+            Debug.DrawRay(origin, direction, Color.cyan, 1f);
+
+            if (hit.collider == null) continue;
+            return true;
+        }
+        return false;
     }
 
     void AdjustPosition(Vector3 direction, float hitDistance, Axis axis) {
@@ -315,4 +318,6 @@ public class PlayerController : MonoBehaviour {
         
         transform.position += direction * (hitDistance - extents);
     }
+    
+    #endregion
 }
