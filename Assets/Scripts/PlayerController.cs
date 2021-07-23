@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour {
     Vector3 _velocity;
     Vector3 _jumpVelocity;
     Vector3 _movement;
+    Vector3 _respawnPosition;
     
     int _faceDirection = 1;
     int _jumpDirection;
@@ -80,6 +81,7 @@ public class PlayerController : MonoBehaviour {
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _maxJumps = jumps;
         _maxWallJumps = wallJumps;
+        _respawnPosition = transform.position;
     }
 
     #region Update
@@ -146,7 +148,13 @@ public class PlayerController : MonoBehaviour {
     }
     
     #endregion
-    
+
+    public void Respawn() {
+        _movement = Vector3.zero;
+        _jumpVelocity = Vector3.zero;
+        transform.position = _respawnPosition;
+    }
+
     #region Jumps
     
     void Jump() {
