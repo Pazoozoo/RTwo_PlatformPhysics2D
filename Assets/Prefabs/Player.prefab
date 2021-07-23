@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 5068337057076821436}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -107,9 +107,11 @@ MonoBehaviour:
   jumpInputLeeway: 0.1
   jumpOffPlatformLeeway: 0.15
   jumpForce: 43
-  jumpDecay: 100
+  jumpForceDecay: 100
   jumps: 2
   wallJumps: 2
+  minTimeBetweenJumps: 0.2
+  respawnDelay: 1
   wallJumpForce: {x: 7, y: 40}
   groundLayers:
     serializedVersion: 2

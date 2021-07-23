@@ -87,6 +87,14 @@ public class PlayerController : MonoBehaviour {
         _respawnPosition = transform.position;
     }
 
+    void OnEnable() {
+        EventBroker.Instance.OnDeath += RespawnPlayer;
+    }
+
+    void OnDisable() {
+        EventBroker.Instance.OnDeath += RespawnPlayer;
+    }
+
     #region Update
 
     void Update() {
@@ -155,18 +163,6 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
 
-    public IEnumerator Respawn() {
-        _velocity = Vector3.zero;
-        _movement = Vector3.zero;
-        _jumpVelocity = Vector3.zero;
-        _respawning = true;
-        
-        yield return new WaitForSeconds(respawnDelay);
-        
-        transform.position = _respawnPosition;
-        _respawning = false;
-    }
-
     #region Jumps
     
     void Jump() {
@@ -213,6 +209,22 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
 
+    void RespawnPlayer() {
+        StartCoroutine(ResetPlayerPosition());
+    }
+    
+    IEnumerator ResetPlayerPosition() {
+        _velocity = Vector3.zero;
+        _movement = Vector3.zero;
+        _jumpVelocity = Vector3.zero;
+        _respawning = true;
+        
+        yield return new WaitForSeconds(respawnDelay);
+
+        transform.position = _respawnPosition;
+        _respawning = false;
+    }
+    
     #region Collisions
     
     void CheckForCollisions() {
