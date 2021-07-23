@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
@@ -18,6 +19,7 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 5f)] int jumps = 2;
     [SerializeField, Range(0f, 5f)] int wallJumps = 2;
     [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f;
+    [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
     [SerializeField] Vector2 wallJumpForce;
     [SerializeField] LayerMask groundLayers;
     
@@ -41,6 +43,7 @@ public class PlayerController : MonoBehaviour {
     bool _onGround;
     bool _onWall;
     bool _wallSliding;
+    bool _respawning;
     
     const int Right = 1;
     const int Left = -1;
@@ -87,6 +90,9 @@ public class PlayerController : MonoBehaviour {
     #region Update
 
     void Update() {
+        if (_respawning)
+            return;
+        
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
         float maxSpeedChange = _onGround || _onWall ? maxAcceleration : maxAirAcceleration;
         maxSpeedChange *= Time.deltaTime;
@@ -149,10 +155,16 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
 
-    public void Respawn() {
+    public IEnumerator Respawn() {
+        _velocity = Vector3.zero;
         _movement = Vector3.zero;
         _jumpVelocity = Vector3.zero;
+        _respawning = true;
+        
+        yield return new WaitForSeconds(respawnDelay);
+        
         transform.position = _respawnPosition;
+        _respawning = false;
     }
 
     #region Jumps
