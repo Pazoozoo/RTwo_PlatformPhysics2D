@@ -16,7 +16,7 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 50f;
     [SerializeField, Range(0f, 200f)] float jumpForceDecay = 100f;
-    [SerializeField, Range(0f, 5f)] int jumps = 2;
+    [SerializeField, Range(0f, 5f)] int airJumps = 2;
     [SerializeField, Range(0f, 5f)] int wallJumps = 2;
     [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f;
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
@@ -61,7 +61,7 @@ public class PlayerController : MonoBehaviour {
     
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
-    bool CanAirJump => jumps > 0 && JumpReady && InAir;
+    bool CanAirJump => airJumps > 0 && JumpReady && InAir;
     bool CanWallJump => wallJumps > 0 && JumpReady && OnWall && !OnGround;
     bool Jumping => _jumpVelocity != Vector3.zero;
     bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
@@ -71,7 +71,6 @@ public class PlayerController : MonoBehaviour {
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
     bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
     bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
-
 
     enum Axis {
         Horizontal,
@@ -83,7 +82,7 @@ public class PlayerController : MonoBehaviour {
     void Awake() {
         _col = GetComponent<Collider2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
-        _maxJumps = jumps;
+        _maxJumps = airJumps;
         _maxWallJumps = wallJumps;
         _respawnPosition = transform.position;
     }
@@ -135,8 +134,10 @@ public class PlayerController : MonoBehaviour {
             _jumpInputTime = Time.time;
         
         if (JumpInput) {
-            if (OnGround || CanAirJump) 
+            if (OnGround) 
                 Jump();
+            else if (CanAirJump)
+                AirJump();
             else if (CanWallJump) 
                 WallJump();
         }
@@ -170,10 +171,14 @@ public class PlayerController : MonoBehaviour {
     
     void Jump() {
         _jumpTime = Time.time;
-        jumps -= 1;
         _jumpVelocity.y = jumpForce;
         _jumpVelocity.x = 0f;
         _jumpInputTime = 0f;
+    }
+
+    void AirJump() {
+        airJumps -= 1;
+        Jump();
     }
     
     void WallJump() {
@@ -292,7 +297,7 @@ public class PlayerController : MonoBehaviour {
             return;
         }
 
-        jumps = _maxJumps;
+        airJumps = _maxJumps;
         wallJumps = _maxWallJumps;
         
         _onGround = true;

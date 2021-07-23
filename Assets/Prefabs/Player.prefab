@@ -105,10 +105,10 @@ MonoBehaviour:
   startWallSlideGraceTime: 0.08
   stopWallSlideGraceTime: 0.04
   jumpInputLeeway: 0.1
-  jumpOffPlatformLeeway: 0.15
+  jumpOffPlatformLeeway: 0.1
   jumpForce: 43
   jumpForceDecay: 100
-  jumps: 2
+  airJumps: 1
   wallJumps: 2
   minTimeBetweenJumps: 0.25
   respawnDelay: 1
