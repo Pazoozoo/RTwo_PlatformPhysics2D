@@ -155,7 +155,7 @@ public class PlayerController : MonoBehaviour {
 
     void LateUpdate() {
         if (_onGround)
-            _spriteRenderer.color = Color.red;
+            _spriteRenderer.color = Color.green;
         else if (_onWall)
             _spriteRenderer.color = Color.gray;
         else 
@@ -217,6 +217,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     IEnumerator ResetPlayerPosition() {
+        _spriteRenderer.enabled = false;
         _velocity = Vector3.zero;
         _movement = Vector3.zero;
         _jumpVelocity = Vector3.zero;
@@ -226,6 +227,7 @@ public class PlayerController : MonoBehaviour {
 
         transform.position = _respawnPosition;
         _respawning = false;
+        _spriteRenderer.enabled = true;
     }
 
     void UpdateRespawnPosition(Vector3 newPosition) {
