@@ -110,7 +110,7 @@ MonoBehaviour:
   jumpForceDecay: 100
   jumps: 2
   wallJumps: 2
-  minTimeBetweenJumps: 0.2
+  minTimeBetweenJumps: 0.25
   respawnDelay: 1
   wallJumpForce: {x: 7, y: 40}
   groundLayers:

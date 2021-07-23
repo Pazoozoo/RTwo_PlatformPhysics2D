@@ -71,7 +71,8 @@ public class PlayerController : MonoBehaviour {
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
     bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
     bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
-    
+
+
     enum Axis {
         Horizontal,
         Vertical
@@ -89,10 +90,12 @@ public class PlayerController : MonoBehaviour {
 
     void OnEnable() {
         EventBroker.Instance.OnDeath += RespawnPlayer;
+        EventBroker.Instance.OnCheckpointUpdate += UpdateRespawnPosition;
     }
 
     void OnDisable() {
-        EventBroker.Instance.OnDeath += RespawnPlayer;
+        EventBroker.Instance.OnDeath -= RespawnPlayer;
+        EventBroker.Instance.OnCheckpointUpdate -= UpdateRespawnPosition;
     }
 
     #region Update
@@ -223,6 +226,11 @@ public class PlayerController : MonoBehaviour {
 
         transform.position = _respawnPosition;
         _respawning = false;
+    }
+
+    void UpdateRespawnPosition(Vector3 newPosition) {
+        newPosition.y += _bounds.extents.y;
+        _respawnPosition = newPosition;
     }
     
     #region Collisions
