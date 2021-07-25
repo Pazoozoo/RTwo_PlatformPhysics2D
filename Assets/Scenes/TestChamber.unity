@@ -1993,6 +1993,10 @@ PrefabInstance:
       propertyPath: wallJumpBlockInputTime
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
+      propertyPath: jumpForceHorizontalDecay
+      value: 12
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ba363a9507c63914791016a518c6de69, type: 3}
 --- !u!1001 &5111926309097316823

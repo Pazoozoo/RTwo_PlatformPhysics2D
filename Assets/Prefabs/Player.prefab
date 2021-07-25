@@ -106,14 +106,15 @@ MonoBehaviour:
   wallSlideStopLeeway: 0.09
   jumpInputLeeway: 0.1
   jumpOffPlatformLeeway: 0.1
-  jumpForce: 43
-  jumpForceVerticalDecay: 100
-  jumpForceHorizontalDecay: 20
-  airJumps: 1
-  wallJumps: 5
   minTimeBetweenJumps: 0.25
+  airJumps: 1
+  jumpForce: 40
+  verticalJumpResistance: 100
+  unlimitedWallJumps: 1
+  wallJumps: 2
+  wallJumpForce: {x: 5, y: 40}
+  horizontalJumpResistance: 15
   respawnDelay: 1
-  wallJumpForce: {x: 7, y: 40}
   groundLayers:
     serializedVersion: 2
     m_Bits: 8

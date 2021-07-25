@@ -5,23 +5,28 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 
 public class PlayerController : MonoBehaviour {
-    [SerializeField, Range(0f, 50f)] float maxSpeed = 12f;
-    [SerializeField, Range(0f, 800f)] float maxAcceleration = 400f;
-    [SerializeField, Range(0f, 800f)] float maxAirAcceleration = 400f;
-    [SerializeField, Range(0f, -50f)] float gravity = -20f;
-    [SerializeField, Range(0f, 30f)] float wallSlideSpeed = 10f;
+    [SerializeField, Range(0f, 50)] int maxSpeed = 12;
+    [SerializeField, Range(0f, 800)] int maxAcceleration = 400;
+    [SerializeField, Range(0f, 800)] int maxAirAcceleration = 400;
+    [SerializeField, Range(0f, -50)] int gravity = -20;
+    
+    [SerializeField, Range(0f, 30)] int wallSlideSpeed = 10;
     [SerializeField, Range(0f, 0.3f)] float wallSlideStartLeeway = 0.08f;
     [SerializeField, Range(0f, 0.3f)] float wallSlideStopLeeway = 0.09f;
+    
     [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
     [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
-    [SerializeField, Range(0f, 100f)] float jumpForce = 50f;
-    [SerializeField, Range(0f, 100f)] float jumpForceVerticalDecay = 100f;
-    [SerializeField, Range(0f, 100f)] float jumpForceHorizontalDecay = 20f;
-    [SerializeField, Range(0f, 5f)] int airJumps = 2;
+    [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f; 
+    [SerializeField, Range(0f, 5f)] int airJumps = 1;
+    [SerializeField, Range(0f, 100)] int jumpForce = 40;
+    [SerializeField, Range(0f, 200)] int verticalJumpResistance = 100;  
+    
+    [SerializeField] bool unlimitedWallJumps; 
     [SerializeField, Range(0f, 5f)] int wallJumps = 2;
-    [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f;
+    [SerializeField] Vector2 wallJumpForce = new Vector2(5, 40);
+    [SerializeField, Range(0f, 50)] int horizontalJumpResistance = 12;
+    
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
-    [SerializeField] Vector2 wallJumpForce;
     [SerializeField] LayerMask groundLayers;
     
     Vector3 _velocity;
@@ -183,7 +188,6 @@ public class PlayerController : MonoBehaviour {
     }
     
     void WallJump() {
-        wallJumps -= 1;
         _jumpTime = Time.time;
         _velocity.y = 0f;
         _velocity.x = 0f;
@@ -191,11 +195,14 @@ public class PlayerController : MonoBehaviour {
         _jumpVelocity.x = wallJumpForce.x * _jumpDirection;
         _onWall = false;
         _wallSliding = false;
+        
+        if (unlimitedWallJumps) return;
+        wallJumps -= 1;
     }
     
     void ReduceJumpVelocity() {
         if (_jumpVelocity.y > 0f)
-            _jumpVelocity.y -= jumpForceVerticalDecay * Time.deltaTime;
+            _jumpVelocity.y -= verticalJumpResistance * Time.deltaTime;
 
         if (_velocity.y < gravity) {
             _velocity.y = gravity;
@@ -205,11 +212,11 @@ public class PlayerController : MonoBehaviour {
         if (_jumpVelocity.x == 0f) return;
         
         if (JumpingRight) {
-            _jumpVelocity.x -= jumpForceHorizontalDecay * Time.deltaTime;
+            _jumpVelocity.x -= horizontalJumpResistance * Time.deltaTime;
             _jumpVelocity.x = Mathf.Max(_jumpVelocity.x, 0f);
         }
         else if (JumpingLeft) {
-            _jumpVelocity.x += jumpForceHorizontalDecay * Time.deltaTime;
+            _jumpVelocity.x += horizontalJumpResistance * Time.deltaTime;
             _jumpVelocity.x = Mathf.Min(_jumpVelocity.x, 0f);
         }
     }
