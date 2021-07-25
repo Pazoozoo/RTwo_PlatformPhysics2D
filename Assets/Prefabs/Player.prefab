@@ -103,7 +103,7 @@ MonoBehaviour:
   gravity: -20
   wallSlideMultiplier: 0.2
   startWallSlideGraceTime: 0.08
-  stopWallSlideGraceTime: 0.04
+  stopWallSlideGraceTime: 0.09
   jumpInputLeeway: 0.1
   jumpOffPlatformLeeway: 0.1
   jumpForce: 43
