@@ -8,13 +8,12 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 50f)] float maxSpeed = 12f;
     [SerializeField, Range(0f, 800f)] float maxAcceleration = 400f;
     [SerializeField, Range(0f, 800f)] float maxAirAcceleration = 400f;
-    [SerializeField, Range(0f, -50f)] float gravity = -8f;
-    [SerializeField, Range(0f, 1f)] float wallSlideMultiplier = 0.2f;
-    [SerializeField, Range(0f, 0.3f)] float startWallSlideGraceTime = 0.08f;
-    [SerializeField, Range(0f, 0.3f)] float stopWallSlideGraceTime = 0.04f;
+    [SerializeField, Range(0f, -50f)] float gravity = -20f;
+    [SerializeField, Range(0f, 30f)] float wallSlideSpeed = 10f;
+    [SerializeField, Range(0f, 0.3f)] float wallSlideStartLeeway = 0.08f;
+    [SerializeField, Range(0f, 0.3f)] float wallSlideStopLeeway = 0.09f;
     [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
     [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
-    [SerializeField, Range(0f, 1f)] float wallJumpBlockInputTime = 0.5f;
     [SerializeField, Range(0f, 100f)] float jumpForce = 50f;
     [SerializeField, Range(0f, 100f)] float jumpForceVerticalDecay = 100f;
     [SerializeField, Range(0f, 100f)] float jumpForceHorizontalDecay = 20f;
@@ -39,7 +38,6 @@ public class PlayerController : MonoBehaviour {
     float _wallSlideStopTime;
     float _jumpInputTime = -10f;
     float _jumpTime;
-    float _wallJumpTime;
     float _leaveGroundTime;
     float _leaveWallTime;
 
@@ -62,7 +60,6 @@ public class PlayerController : MonoBehaviour {
     bool OnWall => _onWall || CloseToWall;
     bool InAir => !OnGround && !OnWall;
 
-    bool InputBlocked => Time.time < _wallJumpTime + wallJumpBlockInputTime;
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
     bool CanAirJump => airJumps > 0 && JumpReady && InAir;
@@ -70,11 +67,12 @@ public class PlayerController : MonoBehaviour {
     bool Jumping => _jumpVelocity != Vector3.zero;
     bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
     bool JumpingLeft => _jumpVelocity.x < 0f && _jumpDirection == Left;
+    bool WallJumping => _jumpVelocity.x != 0f && !_onGround;
     
     bool CloseToGround => Time.time < _leaveGroundTime + jumpOffPlatformLeeway;
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
-    bool WallSlideStartGraceTime => Time.time < _wallSlideStartTime + startWallSlideGraceTime;
-    bool WallSlideStopGraceTime => Time.time < _wallSlideStopTime + stopWallSlideGraceTime;
+    bool WallSlideStartLeeway => Time.time < _wallSlideStartTime + wallSlideStartLeeway;
+    bool WallSlideStopLeeway => Time.time < _wallSlideStopTime + wallSlideStopLeeway;
 
     enum Axis {
         Horizontal,
@@ -121,15 +119,13 @@ public class PlayerController : MonoBehaviour {
         
         switch (_wallSliding) {
             case true: {
-                _jumpVelocity.y = 0f;
+                if (!WallJumping)
+                    _jumpVelocity.y = 0f;
 
-                if (WallSlideStartGraceTime) 
-                    _velocity.y = 0f;
-                else
-                    _velocity.y *= wallSlideMultiplier;
+                _velocity.y = WallSlideStartLeeway ? 0f : -wallSlideSpeed;
                 break;
             }
-            case false when WallSlideStopGraceTime:
+            case false when WallSlideStopLeeway:
                 _velocity.y = 0f;
                 break;
         }
@@ -148,8 +144,6 @@ public class PlayerController : MonoBehaviour {
 
         if (Jumping) {
             _velocity += _jumpVelocity;
-            if (_jumpVelocity.x != 0f)
-                Debug.Log($"v: {_velocity}   jv: {_jumpVelocity}");
             ReduceJumpVelocity();
         }
 
@@ -189,9 +183,8 @@ public class PlayerController : MonoBehaviour {
     }
     
     void WallJump() {
-        _jumpTime = Time.time;
-        _wallJumpTime = Time.time;
         wallJumps -= 1;
+        _jumpTime = Time.time;
         _velocity.y = 0f;
         _velocity.x = 0f;
         _jumpVelocity.y = wallJumpForce.y;
@@ -279,7 +272,7 @@ public class PlayerController : MonoBehaviour {
             return;
         }
 
-        _jumpDirection = _faceDirection * -1;
+        _jumpDirection = -_faceDirection;
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
 
         if (horizontalInput == _faceDirection) {

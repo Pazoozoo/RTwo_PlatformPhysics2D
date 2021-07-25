@@ -1990,14 +1990,6 @@ PrefabInstance:
       value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
-      propertyPath: airJumps
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
-      propertyPath: wallJumps
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
       propertyPath: wallJumpBlockInputTime
       value: 0
       objectReference: {fileID: 0}

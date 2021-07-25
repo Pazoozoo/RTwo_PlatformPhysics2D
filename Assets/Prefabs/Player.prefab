@@ -101,15 +101,16 @@ MonoBehaviour:
   maxAcceleration: 400
   maxAirAcceleration: 400
   gravity: -20
-  wallSlideMultiplier: 0.2
-  startWallSlideGraceTime: 0.08
-  stopWallSlideGraceTime: 0.09
+  wallSlideSpeed: 10
+  wallSlideStartLeeway: 0.08
+  wallSlideStopLeeway: 0.09
   jumpInputLeeway: 0.1
   jumpOffPlatformLeeway: 0.1
   jumpForce: 43
-  jumpForceDecay: 100
+  jumpForceVerticalDecay: 100
+  jumpForceHorizontalDecay: 20
   airJumps: 1
-  wallJumps: 2
+  wallJumps: 5
   minTimeBetweenJumps: 0.25
   respawnDelay: 1
   wallJumpForce: {x: 7, y: 40}
