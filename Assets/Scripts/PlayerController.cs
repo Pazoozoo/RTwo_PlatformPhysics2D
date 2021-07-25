@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using UnityEngine;
 
@@ -35,6 +34,8 @@ public class PlayerController : MonoBehaviour {
     [Header("Other")]
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
     [SerializeField] LayerMask groundLayers;
+
+    #region Private Fields
     
     Vector3 _velocity;
     Vector3 _jumpVelocity;
@@ -67,30 +68,40 @@ public class PlayerController : MonoBehaviour {
     Collider2D _col;
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
-
+    
+    enum Axis {
+        Horizontal,
+        Vertical
+    }
+    
+    #endregion
+    
+    #region Private Properties
+    
     bool OnGround => _onGround || CloseToGround;
     bool OnWall => _onWall || CloseToWall;
     bool InAir => !OnGround && !OnWall;
+    
+    bool Falling => _velocity.y < 0f;
+    bool MovingRight => _velocity.x > 0f;
+    bool MovingLeft => _velocity.x < 0f;
+    bool Jumping => _jumpVelocity != Vector3.zero;
 
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
     bool CanAirJump => airJumps > 0 && JumpReady && InAir;
     bool CanWallJump => wallJumps > 0 && JumpReady && OnWall && !OnGround;
-    bool Jumping => _jumpVelocity != Vector3.zero;
-    bool JumpingRight => _jumpVelocity.x > 0f && _jumpDirection == Right;
-    bool JumpingLeft => _jumpVelocity.x < 0f && _jumpDirection == Left;
+    bool JumpingRight => _jumpVelocity.x != 0f && _jumpDirection == Right;
+    bool JumpingLeft => _jumpVelocity.x != 0f && _jumpDirection == Left;
     bool WallJumping => _jumpVelocity.x != 0f && !_onGround;
     
     bool CloseToGround => Time.time < _leaveGroundTime + jumpOffPlatformLeeway;
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
     bool WallSlideStartLeeway => Time.time < _wallSlideStartTime + wallSlideStartLeeway;
     bool WallSlideStopLeeway => Time.time < _wallSlideStopTime + wallSlideStopLeeway;
-
-    enum Axis {
-        Horizontal,
-        Vertical
-    }
     
+    #endregion
+
     //TODO replace bools with state enum
 
     void Awake() {
@@ -124,24 +135,11 @@ public class PlayerController : MonoBehaviour {
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
         _velocity.y = _onGround ? 0f : gravity;
 
-        if (_velocity.x > 0)
+        if (MovingRight)
             _faceDirection = Right;
-        else if (_velocity.x < 0)
+        else if (MovingLeft)
             _faceDirection = Left;
-        
-        switch (_wallSliding) {
-            case true: {
-                if (!WallJumping)
-                    _jumpVelocity.y = 0f;
 
-                _velocity.y = WallSlideStartLeeway ? 0f : -wallSlideSpeed;
-                break;
-            }
-            case false when WallSlideStopLeeway:
-                _velocity.y = 0f;
-                break;
-        }
-        
         if (Input.GetButtonDown("Jump"))
             _jumpInputTime = Time.time;
         
@@ -157,6 +155,20 @@ public class PlayerController : MonoBehaviour {
         if (Jumping) {
             _velocity += _jumpVelocity;
             ReduceJumpVelocity();
+        }
+        
+        if (Falling) {
+            switch (_wallSliding) {
+                case true: {
+                    if (!WallJumping)
+                        _jumpVelocity.y = 0f;
+                    _velocity.y = WallSlideStartLeeway ? 0f : -wallSlideSpeed;
+                    break;
+                }
+                case false when WallSlideStopLeeway:
+                     _velocity.y = 0f;
+                    break;
+            }
         }
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
@@ -279,9 +291,9 @@ public class PlayerController : MonoBehaviour {
         if (!collision) {
             if (_onWall) {
                 _leaveWallTime = Time.time;
+                _jumpDirection = _faceDirection;
+                _wallSliding = false;
             }
-            _jumpDirection = _faceDirection;
-            _wallSliding = false;
             _onWall = false;
             return;
         }
@@ -376,10 +388,7 @@ public class PlayerController : MonoBehaviour {
                 break;
             case Axis.Horizontal:
                 extents = _bounds.extents.x;
-                if (_movement.x > 0f)
-                    _movement.x = Mathf.Clamp(_movement.x, _movement.x, 0f);
-                else if (_movement.x < 0f)
-                    _movement.x = Mathf.Clamp(_movement.x, 0f, _movement.x);
+                _movement.x = 0f;
                 break;
         }
         
