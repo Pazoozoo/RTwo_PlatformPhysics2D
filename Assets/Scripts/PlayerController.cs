@@ -5,27 +5,34 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 
 public class PlayerController : MonoBehaviour {
+    [Header("Movement")]
     [SerializeField, Range(0f, 50)] int maxSpeed = 12;
     [SerializeField, Range(0f, 800)] int maxAcceleration = 400;
     [SerializeField, Range(0f, 800)] int maxAirAcceleration = 400;
     [SerializeField, Range(0f, -50)] int gravity = -20;
     
+    [Header("Jump Input")]
+    [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
+    [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
+    [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f; 
+    
+    [Header("Jump")]
+    [SerializeField, Range(0f, 100)] int jumpForce = 40;
+    [SerializeField, Range(0f, 200)] int verticalJumpResistance = 100; 
+    [SerializeField, Range(0f, 5f)] int airJumps = 1;
+    
+    [Header("Wall Jump")]
+    [SerializeField] Vector2 wallJumpForce = new Vector2(5, 40);
+    [SerializeField, Range(0f, 50)] int horizontalJumpResistance = 12;
+    [SerializeField] bool unlimitedWallJumps; 
+    [SerializeField, Range(0f, 5f)] int wallJumps = 2;
+    
+    [Header("Wall Slide")]
     [SerializeField, Range(0f, 30)] int wallSlideSpeed = 10;
     [SerializeField, Range(0f, 0.3f)] float wallSlideStartLeeway = 0.08f;
     [SerializeField, Range(0f, 0.3f)] float wallSlideStopLeeway = 0.09f;
     
-    [SerializeField, Range(0f, 0.5f)] float jumpInputLeeway = 0.1f;
-    [SerializeField, Range(0f, 0.5f)] float jumpOffPlatformLeeway = 0.1f;
-    [SerializeField, Range(0f, 1f)] float minTimeBetweenJumps = 0.2f; 
-    [SerializeField, Range(0f, 5f)] int airJumps = 1;
-    [SerializeField, Range(0f, 100)] int jumpForce = 40;
-    [SerializeField, Range(0f, 200)] int verticalJumpResistance = 100;  
-    
-    [SerializeField] bool unlimitedWallJumps; 
-    [SerializeField, Range(0f, 5f)] int wallJumps = 2;
-    [SerializeField] Vector2 wallJumpForce = new Vector2(5, 40);
-    [SerializeField, Range(0f, 50)] int horizontalJumpResistance = 12;
-    
+    [Header("Other")]
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
     [SerializeField] LayerMask groundLayers;
     

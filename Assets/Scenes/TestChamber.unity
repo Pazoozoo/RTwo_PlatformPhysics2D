@@ -556,7 +556,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 69.5406, y: -0.53897357, z: -10}
+  m_LocalPosition: {x: 69.5414, y: -0.5389743, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1951,7 +1951,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 862969528510603955, guid: ba363a9507c63914791016a518c6de69, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.28
+      value: -2.25
       objectReference: {fileID: 0}
     - target: {fileID: 862969528510603955, guid: ba363a9507c63914791016a518c6de69, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1988,14 +1988,6 @@ PrefabInstance:
     - target: {fileID: 5039143774809337925, guid: ba363a9507c63914791016a518c6de69, type: 3}
       propertyPath: m_Name
       value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
-      propertyPath: wallJumpBlockInputTime
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8140302267062223203, guid: ba363a9507c63914791016a518c6de69, type: 3}
-      propertyPath: jumpForceHorizontalDecay
-      value: 12
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ba363a9507c63914791016a518c6de69, type: 3}
@@ -2224,7 +2216,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8015222590198024660, guid: b288045adef27c0468fae2d5e0d1ca6d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.2799995
+      value: -2.2499995
       objectReference: {fileID: 0}
     - target: {fileID: 8015222590198024660, guid: b288045adef27c0468fae2d5e0d1ca6d, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2297,7 +2289,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8033428143228594350, guid: 23d53d26a1e2b8c4182d0b6775a9c415, type: 3}
       propertyPath: m_Size.x
-      value: 100
+      value: 200
       objectReference: {fileID: 0}
     - target: {fileID: 8033428143228594351, guid: 23d53d26a1e2b8c4182d0b6775a9c415, type: 3}
       propertyPath: m_RootOrder
@@ -2305,7 +2297,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8033428143228594351, guid: 23d53d26a1e2b8c4182d0b6775a9c415, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 11.1
+      value: 50.35
       objectReference: {fileID: 0}
     - target: {fileID: 8033428143228594351, guid: 23d53d26a1e2b8c4182d0b6775a9c415, type: 3}
       propertyPath: m_LocalPosition.y
