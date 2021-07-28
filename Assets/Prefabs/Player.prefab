@@ -111,7 +111,7 @@ MonoBehaviour:
   horizontalJumpResistance: 14
   unlimitedWallJumps: 1
   wallJumps: 2
-  wallSlideSpeed: 4
+  wallSlideSpeed: 5
   wallSlideStartLeeway: 0.08
   wallSlideStopLeeway: 0.09
   respawnDelay: 1

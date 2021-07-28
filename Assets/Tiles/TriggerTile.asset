@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TriggerTile
   m_EditorClassIdentifier: 
   m_Sprite: {fileID: 7482667652216324306, guid: 1b5a3e89f6c51134198b7c9647748a0c, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.0627451}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_Transform:
     e00: 1
     e01: 0
