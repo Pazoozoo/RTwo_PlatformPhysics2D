@@ -68,6 +68,7 @@ public class PlayerController : MonoBehaviour {
     Collider2D _col;
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
+    Animator _animator;
     
     enum Axis {
         Horizontal,
@@ -107,6 +108,7 @@ public class PlayerController : MonoBehaviour {
     void Awake() {
         _col = GetComponent<Collider2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        _animator = GetComponent<Animator>();
         _maxJumps = airJumps;
         _maxWallJumps = wallJumps;
         _respawnPosition = transform.position;
@@ -135,10 +137,10 @@ public class PlayerController : MonoBehaviour {
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
         _velocity.y = _onGround ? 0f : gravity;
 
-        if (MovingRight)
-            _faceDirection = Right;
-        else if (MovingLeft)
-            _faceDirection = Left;
+        if (MovingRight && _faceDirection == Left) 
+            ChangeDirection(Right);
+        else if (MovingLeft && _faceDirection == Right)
+            ChangeDirection(Left);
 
         if (Input.GetButtonDown("Jump"))
             _jumpInputTime = Time.time;
@@ -177,6 +179,9 @@ public class PlayerController : MonoBehaviour {
         
         if (moving)
             CheckForCollisions();
+        
+        if (_onGround) 
+            _animator.Play(_movement.x == 0 ? "idle" : "run2");
     }
 
     void LateUpdate() {
@@ -242,6 +247,19 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
 
+    /// <summary>
+    /// Direction must be 1 or -1
+    /// </summary>
+    /// <param name="direction"></param>
+    void ChangeDirection(int direction) {
+        _faceDirection = direction;
+        _spriteRenderer.flipX = _faceDirection switch {
+            Right => false,
+            Left => true,
+            _ => _spriteRenderer.flipX
+        };
+    }
+    
     void RespawnPlayer() {
         StartCoroutine(ResetPlayerPosition());
     }
