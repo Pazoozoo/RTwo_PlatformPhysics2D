@@ -54,4 +54,20 @@ public class AnimationController : MonoBehaviour {
                 break;
         }
     }
+    
+    void SpawnDustEffect(GameObject dust, float dustXOffset = 0)
+    {
+        if (dust != null)
+        {
+            // Set dust spawn position
+            Vector3 dustSpawnPosition = transform.position + new Vector3(dustXOffset * -1, 0.0f, 0.0f);
+            GameObject newDust = Instantiate(dust, dustSpawnPosition, Quaternion.identity) as GameObject;
+            // Turn dust in correct X direction
+            newDust.transform.localScale = newDust.transform.localScale.x * new Vector3(-1, 1, 1);
+        }
+    }
+
+    void AE_jump() {
+        //SpawnDustEffect
+    }
 }
