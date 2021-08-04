@@ -4,12 +4,13 @@ public class AnimationController : MonoBehaviour {
     [SerializeField] GameObject dustEffect;
     
     Animator _animator;
+    Bounds _bounds;
     int _faceDirection = 1;
     float _airJumpTime;
     float _airJumpLength;
+    float _dustTime;    
+    const float WallDustSpawnInterval = 0.17f;
     
-    Bounds _bounds;
-
     const string IdleAnimation = "idle";
     const string RunAnimation = "run";
     const string JumpAnimation = "jump";
@@ -18,6 +19,7 @@ public class AnimationController : MonoBehaviour {
     const string DieAnimation = "die";
 
     bool InAirJumpAnimation => Time.time < _airJumpTime + _airJumpLength;
+    bool DustAnimationPlaying => Time.time < _dustTime + WallDustSpawnInterval;
 
     void Awake() {
         _animator = GetComponent<Animator>();
@@ -27,13 +29,13 @@ public class AnimationController : MonoBehaviour {
     void OnEnable() {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
         EventBroker.Instance.OnDirectionChange += ChangeDirection;
-        // EventBroker.Instance.OnDirectionChange += SpawnDustEffect;
+        EventBroker.Instance.OnWallSlide += PlayWallSlideEffect;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;
         EventBroker.Instance.OnDirectionChange -= ChangeDirection;        
-        // EventBroker.Instance.OnDirectionChange -= SpawnDustEffect;
+        EventBroker.Instance.OnWallSlide -= PlayWallSlideEffect;
     }
 
     void PlayAnimation(PlayerController.PlayerState newState) {
@@ -61,12 +63,17 @@ public class AnimationController : MonoBehaviour {
                 break;
             case PlayerController.PlayerState.WallSlide:
                 _animator.Play(WallSlideAnimation);
-                SpawnDustEffect(-_faceDirection, true);
                 break;
             case PlayerController.PlayerState.Die:
                 _animator.Play(DieAnimation);
                 break;
         }
+    }
+    
+    void PlayWallSlideEffect(int direction) {
+        if (DustAnimationPlaying) return;
+        SpawnDustEffect(-direction, true);
+        _dustTime = Time.time;
     }
 
     void ChangeDirection(int direction) {
@@ -75,9 +82,10 @@ public class AnimationController : MonoBehaviour {
     
     void SpawnDustEffect(int direction, bool vertical = false) {
         float xOffSet = vertical ? 0f : -_bounds.size.x * direction;
-        Vector3 spawnPosition = transform.position + new Vector3(xOffSet, 0, 0);
-        Quaternion rotation = vertical ? Quaternion.Euler(0, 0, -90 * direction) : Quaternion.identity;
+        float yOffSet = vertical ? _bounds.extents.y : 0f;
+        Vector3 spawnPosition = transform.position + new Vector3(xOffSet, yOffSet, 0f);
+        Quaternion rotation = vertical ? Quaternion.Euler(0f, 0f, -90f * direction) : Quaternion.identity;
         GameObject dust = Instantiate(dustEffect, spawnPosition, rotation);
-        dust.transform.localScale = new Vector3(direction, 1, 1);
+        dust.transform.localScale = new Vector3(direction, 1f, 1f);
     }
 }

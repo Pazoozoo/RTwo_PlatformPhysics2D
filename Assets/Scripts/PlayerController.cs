@@ -333,8 +333,11 @@ public class PlayerController : MonoBehaviour {
         int horizontalInput = Mathf.RoundToInt(Input.GetAxisRaw("Horizontal"));
 
         if (horizontalInput == _faceDirection) {
-            if (!_onWall)
+            if (!_onWall) 
                 _wallSlideStartTime = Time.time;
+            
+            if (_velocity.y <= 0 && !_onGround)
+                EventBroker.Instance.OnWallSlide?.Invoke(_faceDirection);
             _wallSliding = true;
         } 
         else {
