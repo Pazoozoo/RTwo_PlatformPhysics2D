@@ -34,6 +34,9 @@ public class PlayerController : MonoBehaviour {
     [Header("Other")]
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
     [SerializeField] LayerMask groundLayers;
+    
+    public enum PlayerState { Idle, Run, WallSlide, Jump, AirJump, WallJump, Die }
+    enum Axis { Horizontal, Vertical }
 
     #region Private Fields
     
@@ -53,40 +56,26 @@ public class PlayerController : MonoBehaviour {
     float _jumpTime;
     float _leaveGroundTime;
     float _leaveWallTime;
+    float _playerFadeAlpha = 1f;
 
     PlayerState _playerState;
 
     bool _onGround;
     bool _onWall;
     bool _wallSliding;
-    bool _respawning;
     
     const int Right = 1;
     const int Left = -1;
     const float VerticalRays = 3f;
     const float HorizontalRays = 5f;
-    const float RaycastOffset = 0.05f;
+    const float RaycastOffset = 0.05f;    
+    const float PlayerFadeSpeed = 0.8f;
+
     
     Collider2D _col;
     Bounds _bounds;
     SpriteRenderer _spriteRenderer;
-    Animator _animator;
-    
-    enum Axis {
-        Horizontal,
-        Vertical
-    }
 
-    public enum PlayerState {
-        Idle,
-        Run,
-        WallSlide,
-        Jump,
-        AirJump,
-        WallJump,
-        Die
-    }
-    
     #endregion
     
     #region Private Properties
@@ -114,13 +103,11 @@ public class PlayerController : MonoBehaviour {
     bool WallSlideStopLeeway => Time.time < _wallSlideStopTime + wallSlideStopLeeway;
     
     #endregion
-
-    //TODO replace bools with state enum
+    
 
     void Awake() {
         _col = GetComponent<Collider2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
-        _animator = GetComponent<Animator>();
         _maxJumps = airJumps;
         _maxWallJumps = wallJumps;
         _respawnPosition = transform.position;
@@ -139,8 +126,11 @@ public class PlayerController : MonoBehaviour {
     #region Update
 
     void Update() {
-        if (_respawning)
+        if (_playerState == PlayerState.Die) {
+            _spriteRenderer.color = new Color(255, 255, 255, _playerFadeAlpha);
+            _playerFadeAlpha -= PlayerFadeSpeed * Time.deltaTime;
             return;
+        }
         
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
         float maxSpeedChange = _onGround || _onWall ? maxAcceleration : maxAirAcceleration;
@@ -191,25 +181,27 @@ public class PlayerController : MonoBehaviour {
         
         if (moving)
             CheckForCollisions();
-        
-        if (_onGround) {
-            _playerState = _movement.x == 0 ? PlayerState.Idle : PlayerState.Run;
-            EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
-        }
+
+        if (_onGround) 
+            UpdatePlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
+        else if (_wallSliding)
+            UpdatePlayerState(PlayerState.WallSlide);
+        else if (Jumping || WallJumping || Falling)
+            UpdatePlayerState(PlayerState.Jump);
     }
 
     void LateUpdate() {
-        if (_onGround)
-            _spriteRenderer.color = Color.green;
-        else if (_onWall)
-            _spriteRenderer.color = Color.gray;
-        else 
-            _spriteRenderer.color = Color.yellow;
-
         transform.position += _movement;
     }
     
     #endregion
+
+    void UpdatePlayerState(PlayerState newState) {
+        if (_playerState == newState) return;
+        
+        _playerState = newState;
+        EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
+    }
 
     #region Jumps
     
@@ -221,11 +213,13 @@ public class PlayerController : MonoBehaviour {
     }
 
     void AirJump() {
+        UpdatePlayerState(PlayerState.AirJump);        
         airJumps -= 1;
         Jump();
     }
     
     void WallJump() {
+        UpdatePlayerState(PlayerState.WallJump);
         _jumpTime = Time.time;
         _velocity.y = 0f;
         _velocity.x = 0f;
@@ -279,17 +273,17 @@ public class PlayerController : MonoBehaviour {
     }
     
     IEnumerator ResetPlayerPosition() {
-        _spriteRenderer.enabled = false;
+        UpdatePlayerState(PlayerState.Die);
         _velocity = Vector3.zero;
         _movement = Vector3.zero;
         _jumpVelocity = Vector3.zero;
-        _respawning = true;
         
         yield return new WaitForSeconds(respawnDelay);
 
+        UpdatePlayerState(PlayerState.Idle);
+        _spriteRenderer.color = new Color(255, 255, 255, 255);
+        _playerFadeAlpha = 1f;
         transform.position = _respawnPosition;
-        _respawning = false;
-        _spriteRenderer.enabled = true;
     }
 
     void UpdateRespawnPosition(Vector3 newPosition) {
