@@ -266,6 +266,7 @@ public class PlayerController : MonoBehaviour {
             Left => true,
             _ => _spriteRenderer.flipX
         };
+        EventBroker.Instance.OnDirectionChange?.Invoke(_faceDirection);
     }
     
     void RespawnPlayer() {

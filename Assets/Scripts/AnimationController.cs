@@ -1,9 +1,14 @@
 using UnityEngine;
 
 public class AnimationController : MonoBehaviour {
+    [SerializeField] GameObject dustEffect;
+    
     Animator _animator;
+    int _faceDirection = 1;
     float _airJumpTime;
     float _airJumpLength;
+    
+    Bounds _bounds;
 
     const string IdleAnimation = "idle";
     const string RunAnimation = "run";
@@ -16,14 +21,17 @@ public class AnimationController : MonoBehaviour {
 
     void Awake() {
         _animator = GetComponent<Animator>();
+        _bounds = GetComponent<Collider2D>().bounds;
     }
 
     void OnEnable() {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
+        EventBroker.Instance.OnDirectionChange += ChangeDirection;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;
+        EventBroker.Instance.OnDirectionChange -= ChangeDirection;
     }
 
     void PlayAnimation(PlayerController.PlayerState newState) {
@@ -35,8 +43,10 @@ public class AnimationController : MonoBehaviour {
                 _animator.Play(RunAnimation);
                 break;
             case PlayerController.PlayerState.Jump:
-                if (!InAirJumpAnimation)
+                if (!InAirJumpAnimation) {
                     _animator.Play(JumpAnimation);
+                    SpawnDustEffect();
+                }
                 break;
             case PlayerController.PlayerState.AirJump:
                 _animator.Play(AirJumpAnimation);
@@ -54,20 +64,15 @@ public class AnimationController : MonoBehaviour {
                 break;
         }
     }
-    
-    void SpawnDustEffect(GameObject dust, float dustXOffset = 0)
-    {
-        if (dust != null)
-        {
-            // Set dust spawn position
-            Vector3 dustSpawnPosition = transform.position + new Vector3(dustXOffset * -1, 0.0f, 0.0f);
-            GameObject newDust = Instantiate(dust, dustSpawnPosition, Quaternion.identity) as GameObject;
-            // Turn dust in correct X direction
-            newDust.transform.localScale = newDust.transform.localScale.x * new Vector3(-1, 1, 1);
-        }
-    }
 
-    void AE_jump() {
-        //SpawnDustEffect
+    void ChangeDirection(int direction) {
+        _faceDirection = direction;
+    }
+    
+    void SpawnDustEffect() {
+        float xOffSet = -_bounds.size.x * _faceDirection;
+        Vector3 spawnPosition = transform.position + new Vector3(xOffSet, 0, 0);
+        GameObject dust = Instantiate(dustEffect, spawnPosition, Quaternion.identity);
+        dust.transform.localScale = new Vector3(_faceDirection, 1, 1);
     }
 }
