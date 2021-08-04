@@ -5,7 +5,6 @@ public class AnimationController : MonoBehaviour {
     
     Animator _animator;
     Bounds _bounds;
-    int _faceDirection = 1;
     float _airJumpTime;
     float _airJumpLength;
     float _dustTime;    
@@ -28,14 +27,14 @@ public class AnimationController : MonoBehaviour {
 
     void OnEnable() {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
-        EventBroker.Instance.OnDirectionChange += ChangeDirection;
-        EventBroker.Instance.OnWallSlide += PlayWallSlideEffect;
+        EventBroker.Instance.OnWallSlide += PlayWallSlideDustEffect;
+        EventBroker.Instance.OnJump += PlayJumpDustEffect;
     }
 
     void OnDisable() {
-        EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;
-        EventBroker.Instance.OnDirectionChange -= ChangeDirection;        
-        EventBroker.Instance.OnWallSlide -= PlayWallSlideEffect;
+        EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;      
+        EventBroker.Instance.OnWallSlide -= PlayWallSlideDustEffect;
+        EventBroker.Instance.OnJump -= PlayJumpDustEffect;
     }
 
     void PlayAnimation(PlayerController.PlayerState newState) {
@@ -47,10 +46,8 @@ public class AnimationController : MonoBehaviour {
                 _animator.Play(RunAnimation);
                 break;
             case PlayerController.PlayerState.Jump:
-                if (!InAirJumpAnimation) {
+                if (!InAirJumpAnimation) 
                     _animator.Play(JumpAnimation);
-                    SpawnDustEffect(_faceDirection);
-                }
                 break;
             case PlayerController.PlayerState.AirJump:
                 _animator.Play(AirJumpAnimation);
@@ -59,7 +56,6 @@ public class AnimationController : MonoBehaviour {
                 break;
             case PlayerController.PlayerState.WallJump:
                 _animator.Play(JumpAnimation);
-                SpawnDustEffect(_faceDirection);
                 break;
             case PlayerController.PlayerState.WallSlide:
                 _animator.Play(WallSlideAnimation);
@@ -69,17 +65,17 @@ public class AnimationController : MonoBehaviour {
                 break;
         }
     }
+
+    void PlayJumpDustEffect(int direction) {
+        SpawnDustEffect(direction);
+    }
     
-    void PlayWallSlideEffect(int direction) {
+    void PlayWallSlideDustEffect(int direction) {
         if (DustAnimationPlaying) return;
         SpawnDustEffect(-direction, true);
         _dustTime = Time.time;
     }
 
-    void ChangeDirection(int direction) {
-        _faceDirection = direction;
-    }
-    
     void SpawnDustEffect(int direction, bool vertical = false) {
         float xOffSet = vertical ? 0f : -_bounds.size.x * direction;
         float yOffSet = vertical ? _bounds.extents.y : 0f;

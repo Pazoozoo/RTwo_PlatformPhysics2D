@@ -96,6 +96,7 @@ public class PlayerController : MonoBehaviour {
     bool JumpingRight => _jumpVelocity.x != 0f && _jumpDirection == Right;
     bool JumpingLeft => _jumpVelocity.x != 0f && _jumpDirection == Left;
     bool WallJumping => _jumpVelocity.x != 0f && !_onGround;
+    bool WallSlidingDown => _velocity.y < 0 && !WallSlideStartLeeway;
     
     bool CloseToGround => Time.time < _leaveGroundTime + jumpOffPlatformLeeway;
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
@@ -176,10 +177,6 @@ public class PlayerController : MonoBehaviour {
         }
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
-        
-        // if (_velocity.x != 0 && _movement.x == 0)
-        //     EventBroker.Instance.OnMovementImpact?.Invoke(_faceDirection);
-
         _movement = _velocity * Time.deltaTime;
         bool moving = _movement != Vector3.zero;
         
@@ -210,6 +207,9 @@ public class PlayerController : MonoBehaviour {
     #region Jumps
     
     void Jump() {
+        if (_playerState != PlayerState.AirJump)
+            EventBroker.Instance.OnJump?.Invoke(_faceDirection);
+
         _jumpTime = Time.time;
         _jumpVelocity.y = jumpForce;
         _jumpVelocity.x = 0f;
@@ -224,6 +224,8 @@ public class PlayerController : MonoBehaviour {
     
     void WallJump() {
         UpdatePlayerState(PlayerState.WallJump);
+        EventBroker.Instance.OnJump?.Invoke(_jumpDirection);
+        
         _jumpTime = Time.time;
         _velocity.y = 0f;
         _velocity.x = 0f;
@@ -270,7 +272,6 @@ public class PlayerController : MonoBehaviour {
             Left => true,
             _ => _spriteRenderer.flipX
         };
-        EventBroker.Instance.OnDirectionChange?.Invoke(_faceDirection);
     }
     
     void RespawnPlayer() {
@@ -335,10 +336,10 @@ public class PlayerController : MonoBehaviour {
         if (horizontalInput == _faceDirection) {
             if (!_onWall) 
                 _wallSlideStartTime = Time.time;
-            
-            if (_velocity.y <= 0 && !_onGround)
-                EventBroker.Instance.OnWallSlide?.Invoke(_faceDirection);
             _wallSliding = true;
+            
+            if (WallSlidingDown) 
+                EventBroker.Instance.OnWallSlide?.Invoke(_faceDirection);
         } 
         else {
             if (_wallSliding) 
