@@ -27,11 +27,13 @@ public class AnimationController : MonoBehaviour {
     void OnEnable() {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
         EventBroker.Instance.OnDirectionChange += ChangeDirection;
+        // EventBroker.Instance.OnDirectionChange += SpawnDustEffect;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;
-        EventBroker.Instance.OnDirectionChange -= ChangeDirection;
+        EventBroker.Instance.OnDirectionChange -= ChangeDirection;        
+        // EventBroker.Instance.OnDirectionChange -= SpawnDustEffect;
     }
 
     void PlayAnimation(PlayerController.PlayerState newState) {
@@ -45,7 +47,7 @@ public class AnimationController : MonoBehaviour {
             case PlayerController.PlayerState.Jump:
                 if (!InAirJumpAnimation) {
                     _animator.Play(JumpAnimation);
-                    SpawnDustEffect();
+                    SpawnDustEffect(_faceDirection);
                 }
                 break;
             case PlayerController.PlayerState.AirJump:
@@ -55,9 +57,11 @@ public class AnimationController : MonoBehaviour {
                 break;
             case PlayerController.PlayerState.WallJump:
                 _animator.Play(JumpAnimation);
+                SpawnDustEffect(_faceDirection);
                 break;
             case PlayerController.PlayerState.WallSlide:
                 _animator.Play(WallSlideAnimation);
+                SpawnDustEffect(-_faceDirection, true);
                 break;
             case PlayerController.PlayerState.Die:
                 _animator.Play(DieAnimation);
@@ -69,10 +73,11 @@ public class AnimationController : MonoBehaviour {
         _faceDirection = direction;
     }
     
-    void SpawnDustEffect() {
-        float xOffSet = -_bounds.size.x * _faceDirection;
+    void SpawnDustEffect(int direction, bool vertical = false) {
+        float xOffSet = vertical ? 0f : -_bounds.size.x * direction;
         Vector3 spawnPosition = transform.position + new Vector3(xOffSet, 0, 0);
-        GameObject dust = Instantiate(dustEffect, spawnPosition, Quaternion.identity);
-        dust.transform.localScale = new Vector3(_faceDirection, 1, 1);
+        Quaternion rotation = vertical ? Quaternion.Euler(0, 0, -90 * direction) : Quaternion.identity;
+        GameObject dust = Instantiate(dustEffect, spawnPosition, rotation);
+        dust.transform.localScale = new Vector3(direction, 1, 1);
     }
 }

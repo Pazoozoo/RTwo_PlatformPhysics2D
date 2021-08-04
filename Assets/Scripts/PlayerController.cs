@@ -176,6 +176,10 @@ public class PlayerController : MonoBehaviour {
         }
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
+        
+        // if (_velocity.x != 0 && _movement.x == 0)
+        //     EventBroker.Instance.OnMovementImpact?.Invoke(_faceDirection);
+
         _movement = _velocity * Time.deltaTime;
         bool moving = _movement != Vector3.zero;
         

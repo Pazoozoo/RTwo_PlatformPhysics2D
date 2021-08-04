@@ -11,4 +11,5 @@ public class EventBroker {
     public Action<Vector3> OnCheckpointUpdate;
     public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
     public Action<int> OnDirectionChange;
+    public Action<int> OnMovementImpact;
 }
