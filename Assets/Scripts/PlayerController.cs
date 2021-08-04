@@ -54,6 +54,8 @@ public class PlayerController : MonoBehaviour {
     float _leaveGroundTime;
     float _leaveWallTime;
 
+    PlayerState _playerState;
+
     bool _onGround;
     bool _onWall;
     bool _wallSliding;
@@ -73,6 +75,16 @@ public class PlayerController : MonoBehaviour {
     enum Axis {
         Horizontal,
         Vertical
+    }
+
+    public enum PlayerState {
+        Idle,
+        Run,
+        WallSlide,
+        Jump,
+        AirJump,
+        WallJump,
+        Die
     }
     
     #endregion
@@ -180,8 +192,10 @@ public class PlayerController : MonoBehaviour {
         if (moving)
             CheckForCollisions();
         
-        if (_onGround) 
-            _animator.Play(_movement.x == 0 ? "idle" : "run2");
+        if (_onGround) {
+            _playerState = _movement.x == 0 ? PlayerState.Idle : PlayerState.Run;
+            EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
+        }
     }
 
     void LateUpdate() {

@@ -9,4 +9,5 @@ public class EventBroker {
     
     public Action OnDeath;
     public Action<Vector3> OnCheckpointUpdate;
+    public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
 }
