@@ -162,7 +162,7 @@ public class PlayerController : MonoBehaviour {
         }
         
         if (Falling) 
-            ApplyWallSlideFriction();
+            CheckWallSlideFriction();
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
         _movement = _velocity * Time.deltaTime;
@@ -180,7 +180,7 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
     
-    void ApplyWallSlideFriction() {
+    void CheckWallSlideFriction() {
         switch (_wallSliding) {
             case true: {
                 if (!WallJumping)
