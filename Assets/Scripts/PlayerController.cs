@@ -161,19 +161,8 @@ public class PlayerController : MonoBehaviour {
             ReduceJumpVelocity();
         }
         
-        if (Falling) {
-            switch (_wallSliding) {
-                case true: {
-                    if (!WallJumping)
-                        _jumpVelocity.y = 0f;
-                    _velocity.y = WallSlideStartLeeway ? 0f : -wallSlideSpeed;
-                    break;
-                }
-                case false when WallSlideStopLeeway:
-                     _velocity.y = 0f;
-                    break;
-            }
-        }
+        if (Falling) 
+            ApplyWallSlideFriction();
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
         _movement = _velocity * Time.deltaTime;
@@ -182,12 +171,7 @@ public class PlayerController : MonoBehaviour {
         if (moving)
             CheckForCollisions();
 
-        if (_onGround) 
-            UpdatePlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
-        else if (_wallSliding)
-            UpdatePlayerState(PlayerState.WallSlide);
-        else if (Jumping || WallJumping || Falling)
-            UpdatePlayerState(PlayerState.Jump);
+        UpdatePlayerState();
     }
 
     void LateUpdate() {
@@ -195,8 +179,31 @@ public class PlayerController : MonoBehaviour {
     }
     
     #endregion
+    
+    void ApplyWallSlideFriction() {
+        switch (_wallSliding) {
+            case true: {
+                if (!WallJumping)
+                    _jumpVelocity.y = 0f;
+                _velocity.y = WallSlideStartLeeway ? 0f : -wallSlideSpeed;
+                break;
+            }
+            case false when WallSlideStopLeeway:
+                _velocity.y = 0f;
+                break;
+        }
+    }
+    
+    void UpdatePlayerState() {
+        if (_onGround)
+            BroadcastPlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
+        else if (_wallSliding)
+            BroadcastPlayerState(PlayerState.WallSlide);
+        else if (Jumping || WallJumping || Falling)
+            BroadcastPlayerState(PlayerState.Jump);
+    }
 
-    void UpdatePlayerState(PlayerState newState) {
+    void BroadcastPlayerState(PlayerState newState) {
         if (_playerState == newState) return;
         
         _playerState = newState;
@@ -229,13 +236,13 @@ public class PlayerController : MonoBehaviour {
     }
 
     void AirJump() {
-        UpdatePlayerState(PlayerState.AirJump);        
+        BroadcastPlayerState(PlayerState.AirJump);        
         airJumps -= 1;
         Jump();
     }
     
     void WallJump() {
-        UpdatePlayerState(PlayerState.WallJump);
+        BroadcastPlayerState(PlayerState.WallJump);
         EventBroker.Instance.OnImpact?.Invoke(_jumpDirection);
         
         _jumpTime = Time.time;
@@ -280,7 +287,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     IEnumerator ResetPlayerPosition() {
-        UpdatePlayerState(PlayerState.Die);
+        BroadcastPlayerState(PlayerState.Die);
         EventBroker.Instance.OnDeathSmoke?.Invoke(_faceDirection);
         _velocity = Vector3.zero;
         _movement = Vector3.zero;
@@ -288,7 +295,7 @@ public class PlayerController : MonoBehaviour {
         
         yield return new WaitForSeconds(respawnDelay);
 
-        UpdatePlayerState(PlayerState.Idle);
+        BroadcastPlayerState(PlayerState.Idle);
         _spriteRenderer.color = new Color(255, 255, 255, 255);
         _playerFadeAlpha = 1f;
         transform.position = _respawnPosition;
