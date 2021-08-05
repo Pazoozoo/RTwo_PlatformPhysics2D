@@ -179,7 +179,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4af80d769538b842bfe64afef83aef0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dustEffect: {fileID: 1164438022907966939, guid: 840e70cffffb26144bd91ae2f3115207, type: 3}
+  impactDustEffect: {fileID: 1164438022907966939, guid: 840e70cffffb26144bd91ae2f3115207, type: 3}
+  dieSmokeEffect: {fileID: 7457633750189500270, guid: db8c432915b128c41b39e4a94e443e2c, type: 3}
 --- !u!95 &1483781308
 Animator:
   serializedVersion: 3

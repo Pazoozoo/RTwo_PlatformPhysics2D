@@ -280,6 +280,7 @@ public class PlayerController : MonoBehaviour {
     
     IEnumerator ResetPlayerPosition() {
         UpdatePlayerState(PlayerState.Die);
+        EventBroker.Instance.OnDeathSmoke?.Invoke(_faceDirection);
         _velocity = Vector3.zero;
         _movement = Vector3.zero;
         _jumpVelocity = Vector3.zero;

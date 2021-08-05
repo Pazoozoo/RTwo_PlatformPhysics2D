@@ -1,7 +1,8 @@
 using UnityEngine;
 
 public class AnimationController : MonoBehaviour {
-    [SerializeField] GameObject dustEffect;
+    [SerializeField] GameObject impactDustEffect;
+    [SerializeField] GameObject dieSmokeEffect;
     
     Animator _animator;
     Bounds _bounds;
@@ -29,14 +30,16 @@ public class AnimationController : MonoBehaviour {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
         EventBroker.Instance.OnWallSlide += PlayWallSlideDustEffect;
         EventBroker.Instance.OnJump += PlayJumpDustEffect;
+        EventBroker.Instance.OnDeathSmoke += PlayDieSmokeEffect;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;      
         EventBroker.Instance.OnWallSlide -= PlayWallSlideDustEffect;
         EventBroker.Instance.OnJump -= PlayJumpDustEffect;
+        EventBroker.Instance.OnDeathSmoke -= PlayDieSmokeEffect;
     }
-
+    
     void PlayAnimation(PlayerController.PlayerState newState) {
         switch (newState) {
             case PlayerController.PlayerState.Idle:
@@ -67,21 +70,31 @@ public class AnimationController : MonoBehaviour {
     }
 
     void PlayJumpDustEffect(int direction) {
-        SpawnDustEffect(direction);
+        SpawnImpactDustEffect(direction);
     }
     
     void PlayWallSlideDustEffect(int direction) {
         if (DustAnimationPlaying) return;
-        SpawnDustEffect(-direction, true);
+        SpawnImpactDustEffect(-direction, true);
         _dustTime = Time.time;
     }
 
-    void SpawnDustEffect(int direction, bool vertical = false) {
+    void PlayDieSmokeEffect(int direction) {
+        float xOffSet = _bounds.size.x * direction;
+        Vector3 position = transform.position + new Vector3(xOffSet, 0f, 0f);
+        InstantiateEffect(dieSmokeEffect, direction, position, Quaternion.identity);
+    }
+
+    void SpawnImpactDustEffect(int direction, bool vertical = false) {
         float xOffSet = vertical ? 0f : -_bounds.size.x * direction;
         float yOffSet = vertical ? _bounds.extents.y : 0f;
-        Vector3 spawnPosition = transform.position + new Vector3(xOffSet, yOffSet, 0f);
+        Vector3 position = transform.position + new Vector3(xOffSet, yOffSet, 0f);
         Quaternion rotation = vertical ? Quaternion.Euler(0f, 0f, -90f * direction) : Quaternion.identity;
-        GameObject dust = Instantiate(dustEffect, spawnPosition, rotation);
-        dust.transform.localScale = new Vector3(direction, 1f, 1f);
+        InstantiateEffect(impactDustEffect, direction, position, rotation);
+    }
+
+    static void InstantiateEffect(GameObject effectPrefab, int direction, Vector3 position, Quaternion rotation) {
+        GameObject newEffect = Instantiate(effectPrefab, position, rotation);
+        newEffect.transform.localScale = new Vector3(direction, 1f, 1f);
     }
 }

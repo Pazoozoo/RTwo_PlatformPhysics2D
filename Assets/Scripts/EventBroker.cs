@@ -12,4 +12,5 @@ public class EventBroker {
     public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
     public Action<int> OnWallSlide;
     public Action<int> OnJump;
+    public Action<int> OnDeathSmoke;
 }
