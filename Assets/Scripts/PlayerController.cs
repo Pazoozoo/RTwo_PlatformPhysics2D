@@ -70,7 +70,6 @@ public class PlayerController : MonoBehaviour {
     const float HorizontalRays = 5f;
     const float RaycastOffset = 0.05f;    
     const float PlayerFadeSpeed = 0.8f;
-
     
     Collider2D _col;
     Bounds _bounds;
@@ -203,6 +202,19 @@ public class PlayerController : MonoBehaviour {
         _playerState = newState;
         EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
     }
+    
+    /// <summary>
+    /// Direction must be 1 or -1
+    /// </summary>
+    /// <param name="direction"></param>
+    void ChangeDirection(int direction) {
+        _faceDirection = direction;
+        _spriteRenderer.flipX = _faceDirection switch {
+            Right => false,
+            Left => true,
+            _ => _spriteRenderer.flipX
+        };
+    }
 
     #region Jumps
     
@@ -261,19 +273,8 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
 
-    /// <summary>
-    /// Direction must be 1 or -1
-    /// </summary>
-    /// <param name="direction"></param>
-    void ChangeDirection(int direction) {
-        _faceDirection = direction;
-        _spriteRenderer.flipX = _faceDirection switch {
-            Right => false,
-            Left => true,
-            _ => _spriteRenderer.flipX
-        };
-    }
-    
+    #region Respawning
+
     void RespawnPlayer() {
         StartCoroutine(ResetPlayerPosition());
     }
@@ -297,6 +298,8 @@ public class PlayerController : MonoBehaviour {
         newPosition.y += _bounds.extents.y;
         _respawnPosition = newPosition;
     }
+    
+    #endregion
     
     #region Collisions
     
