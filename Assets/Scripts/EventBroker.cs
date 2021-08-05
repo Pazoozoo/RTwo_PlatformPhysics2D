@@ -11,6 +11,6 @@ public class EventBroker {
     public Action<Vector3> OnCheckpointUpdate;
     public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
     public Action<int> OnWallSlide;
-    public Action<int> OnJump;
+    public Action<int> OnImpact;
     public Action<int> OnDeathSmoke;
 }

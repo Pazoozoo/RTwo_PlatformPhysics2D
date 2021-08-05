@@ -29,14 +29,14 @@ public class AnimationController : MonoBehaviour {
     void OnEnable() {
         EventBroker.Instance.OnPlayerStateUpdate += PlayAnimation;
         EventBroker.Instance.OnWallSlide += PlayWallSlideDustEffect;
-        EventBroker.Instance.OnJump += PlayJumpDustEffect;
+        EventBroker.Instance.OnImpact += PlayImpactDustEffect;
         EventBroker.Instance.OnDeathSmoke += PlayDieSmokeEffect;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnPlayerStateUpdate -= PlayAnimation;      
         EventBroker.Instance.OnWallSlide -= PlayWallSlideDustEffect;
-        EventBroker.Instance.OnJump -= PlayJumpDustEffect;
+        EventBroker.Instance.OnImpact -= PlayImpactDustEffect;
         EventBroker.Instance.OnDeathSmoke -= PlayDieSmokeEffect;
     }
     
@@ -69,7 +69,7 @@ public class AnimationController : MonoBehaviour {
         }
     }
 
-    void PlayJumpDustEffect(int direction) {
+    void PlayImpactDustEffect(int direction) {
         SpawnImpactDustEffect(direction);
     }
     
