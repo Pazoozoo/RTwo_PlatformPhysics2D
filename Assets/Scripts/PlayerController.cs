@@ -65,6 +65,7 @@ public class PlayerController : MonoBehaviour {
     bool _onWall;
     bool _wallSliding;
     bool _onLadder;
+    bool _stoppedVerticalMomentum;
     
     const int Right = 1;
     const int Left = -1;
@@ -83,15 +84,13 @@ public class PlayerController : MonoBehaviour {
     
     bool OnGround => _onGround || CloseToGround;
     bool OnWall => _onWall || CloseToWall;
-    bool InAir => !OnGround && !OnWall;
+    bool InAir => !OnGround && !OnWall && !_onLadder;
     
     bool Falling => _velocity.y < 0f;
     bool MovingRight => _velocity.x > 0f;
     bool MovingLeft => _velocity.x < 0f;
     bool Jumping => _jumpVelocity != Vector3.zero;
-    bool Climbing => ClimbingUp || ClimbingDown;
-    bool ClimbingUp => Input.GetAxisRaw("Vertical") > 0 && _onLadder;
-    bool ClimbingDown => Input.GetAxisRaw("Vertical") < 0 && _onLadder;
+    bool Climbing => _onLadder && !_onGround && _stoppedVerticalMomentum;
 
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
@@ -144,28 +143,25 @@ public class PlayerController : MonoBehaviour {
         maxSpeedChange *= Time.deltaTime;
 
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
-        _velocity.y = _onGround || _onLadder ? 0f : gravity;
+        _velocity.y = _onGround ? 0f : gravity;
         
         if (MovingRight && _faceDirection == Left) 
             ChangeDirection(Right);
         else if (MovingLeft && _faceDirection == Right)
             ChangeDirection(Left);
 
-        if (_onLadder) {
-            var verticalInput = Input.GetAxisRaw("Vertical");
-            if (verticalInput != 0)
-                _velocity.y = climbSpeed * verticalInput;
-            else if (!_onGround)
-                BroadcastPlayerState(PlayerState.IdleClimb);
-        }
-        
-        if (Input.GetButtonDown("Jump"))
+        if (_onLadder) 
+            CheckClimbingInput();
+
+        if (Input.GetButtonDown("Jump")) 
             _jumpInputTime = Time.time;
-        
+
         if (JumpInput) {
-            if (OnGround) 
+            if (Climbing) 
+                _stoppedVerticalMomentum = false;
+            else if (OnGround)
                 Jump();
-            else if (CanAirJump)
+            else if (CanAirJump) 
                 AirJump();
             else if (CanWallJump) 
                 WallJump();
@@ -195,6 +191,23 @@ public class PlayerController : MonoBehaviour {
     
     #endregion
     
+    void CheckClimbingInput() {
+        var verticalInput = Input.GetAxisRaw("Vertical");
+
+        if (verticalInput != 0) {
+            if (!_onGround)
+                BroadcastPlayerState(PlayerState.Climb);
+            _velocity.y = climbSpeed * verticalInput;
+            _jumpVelocity.y = 0f;
+            _stoppedVerticalMomentum = true;
+        }
+        else if (!_onGround && _stoppedVerticalMomentum) {
+            BroadcastPlayerState(PlayerState.IdleClimb);
+            _velocity.y = 0f;
+            _jumpVelocity.y = 0f;
+        }
+    }
+    
     void CheckWallSlideFriction() {
         switch (_wallSliding) {
             case true: {
@@ -208,25 +221,7 @@ public class PlayerController : MonoBehaviour {
                 break;
         }
     }
-    
-    void UpdatePlayerState() {
-        if (_onGround)
-            BroadcastPlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
-        else if (_wallSliding)
-            BroadcastPlayerState(PlayerState.WallSlide);
-        else if (Climbing)
-            BroadcastPlayerState(PlayerState.Climb);
-        else if (Jumping || WallJumping || Falling)
-            BroadcastPlayerState(PlayerState.Jump);
-    }
 
-    void BroadcastPlayerState(PlayerState newState) {
-        if (_playerState == newState) return;
-        
-        _playerState = newState;
-        EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
-    }
-    
     /// <summary>
     /// Direction must be 1 or -1
     /// </summary>
@@ -243,6 +238,22 @@ public class PlayerController : MonoBehaviour {
     void UpdateOnLadder(bool value) {
         _onLadder = value;
     }
+    
+    void UpdatePlayerState() {
+        if (_onGround)
+            BroadcastPlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
+        else if (_wallSliding)
+            BroadcastPlayerState(PlayerState.WallSlide);
+        else if (Jumping || WallJumping)
+            BroadcastPlayerState(PlayerState.Jump);
+    }
+
+    void BroadcastPlayerState(PlayerState newState) {
+        if (_playerState == newState) return;
+        
+        _playerState = newState;
+        EventBroker.Instance.OnPlayerStateUpdate?.Invoke(_playerState);
+    }
 
     #region Jumps
     
@@ -254,6 +265,7 @@ public class PlayerController : MonoBehaviour {
         _jumpVelocity.y = jumpForce;
         _jumpVelocity.x = 0f;
         _jumpInputTime = 0f;
+        _stoppedVerticalMomentum = false;
     }
 
     void AirJump() {
@@ -416,7 +428,7 @@ public class PlayerController : MonoBehaviour {
         
         collision = DoCollisionCheck(startPoint, endPoint, direction, rayLength, VerticalRays, out RaycastHit2D hit);
         
-        if (collision)
+        if (collision) 
             AdjustPosition(direction, hit.distance, Axis.Vertical);
     }
     

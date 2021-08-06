@@ -3,11 +3,9 @@ using UnityEngine;
 public class AnimationController : MonoBehaviour {
     [SerializeField] GameObject impactDustEffect;
     [SerializeField] GameObject dieSmokeEffect;
-    [SerializeField] Sprite idleClimbSprite;
     
     Animator _animator;
     Bounds _bounds;
-    SpriteRenderer _spriteRenderer;
     float _airJumpTime;
     float _airJumpLength;
     float _dustTime;    
@@ -28,7 +26,6 @@ public class AnimationController : MonoBehaviour {
     void Awake() {
         _animator = GetComponent<Animator>();
         _bounds = GetComponent<Collider2D>().bounds;
-        _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void OnEnable() {
