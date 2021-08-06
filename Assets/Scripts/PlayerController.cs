@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour {
     [Header("Movement")]
     [SerializeField, Range(0f, 50)] int maxSpeed = 12;
+    [SerializeField, Range(0f, 30)] int climbSpeed = 6;
     [SerializeField, Range(0f, 800)] int maxAcceleration = 400;
     [SerializeField, Range(0f, 800)] int maxAirAcceleration = 400;
     [SerializeField, Range(0f, -50)] int gravity = -20;
@@ -35,7 +36,7 @@ public class PlayerController : MonoBehaviour {
     [SerializeField, Range(0f, 5f)] float respawnDelay = 1f;
     [SerializeField] LayerMask groundLayers;
     
-    public enum PlayerState { Idle, Run, WallSlide, Jump, AirJump, WallJump, Die }
+    public enum PlayerState { Idle, Run, WallSlide, Climb, IdleClimb, Jump, AirJump, WallJump, Die }
     enum Axis { Horizontal, Vertical }
 
     #region Private Fields
@@ -63,6 +64,7 @@ public class PlayerController : MonoBehaviour {
     bool _onGround;
     bool _onWall;
     bool _wallSliding;
+    bool _onLadder;
     
     const int Right = 1;
     const int Left = -1;
@@ -87,6 +89,9 @@ public class PlayerController : MonoBehaviour {
     bool MovingRight => _velocity.x > 0f;
     bool MovingLeft => _velocity.x < 0f;
     bool Jumping => _jumpVelocity != Vector3.zero;
+    bool Climbing => ClimbingUp || ClimbingDown;
+    bool ClimbingUp => Input.GetAxisRaw("Vertical") > 0 && _onLadder;
+    bool ClimbingDown => Input.GetAxisRaw("Vertical") < 0 && _onLadder;
 
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
@@ -116,11 +121,13 @@ public class PlayerController : MonoBehaviour {
     void OnEnable() {
         EventBroker.Instance.OnDeath += RespawnPlayer;
         EventBroker.Instance.OnCheckpointUpdate += UpdateRespawnPosition;
+        EventBroker.Instance.OnLadderUpdate += UpdateOnLadder;
     }
 
     void OnDisable() {
         EventBroker.Instance.OnDeath -= RespawnPlayer;
         EventBroker.Instance.OnCheckpointUpdate -= UpdateRespawnPosition;
+        EventBroker.Instance.OnLadderUpdate -= UpdateOnLadder;
     }
 
     #region Update
@@ -137,13 +144,21 @@ public class PlayerController : MonoBehaviour {
         maxSpeedChange *= Time.deltaTime;
 
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
-        _velocity.y = _onGround ? 0f : gravity;
-
+        _velocity.y = _onGround || _onLadder ? 0f : gravity;
+        
         if (MovingRight && _faceDirection == Left) 
             ChangeDirection(Right);
         else if (MovingLeft && _faceDirection == Right)
             ChangeDirection(Left);
 
+        if (_onLadder) {
+            var verticalInput = Input.GetAxisRaw("Vertical");
+            if (verticalInput != 0)
+                _velocity.y = climbSpeed * verticalInput;
+            else if (!_onGround)
+                BroadcastPlayerState(PlayerState.IdleClimb);
+        }
+        
         if (Input.GetButtonDown("Jump"))
             _jumpInputTime = Time.time;
         
@@ -199,6 +214,8 @@ public class PlayerController : MonoBehaviour {
             BroadcastPlayerState(_movement.x == 0 ? PlayerState.Idle : PlayerState.Run);
         else if (_wallSliding)
             BroadcastPlayerState(PlayerState.WallSlide);
+        else if (Climbing)
+            BroadcastPlayerState(PlayerState.Climb);
         else if (Jumping || WallJumping || Falling)
             BroadcastPlayerState(PlayerState.Jump);
     }
@@ -221,6 +238,10 @@ public class PlayerController : MonoBehaviour {
             Left => true,
             _ => _spriteRenderer.flipX
         };
+    }
+
+    void UpdateOnLadder(bool value) {
+        _onLadder = value;
     }
 
     #region Jumps

@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 862969528510603955}
   - component: {fileID: 8545196404299339733}
   - component: {fileID: 8140302267062223203}
+  - component: {fileID: 3538806575617014574}
   - component: {fileID: 5068337057076821432}
   - component: {fileID: 5068337057076821436}
-  - component: {fileID: 3538806575617014574}
   - component: {fileID: 1483781308}
   m_Layer: 0
   m_Name: Player
@@ -100,6 +100,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSpeed: 12
+  climbSpeed: 6
   maxAcceleration: 400
   maxAirAcceleration: 400
   gravity: -20
@@ -120,6 +121,21 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 8
+--- !u!114 &3538806575617014574
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5039143774809337925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4af80d769538b842bfe64afef83aef0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  impactDustEffect: {fileID: 1164438022907966939, guid: 840e70cffffb26144bd91ae2f3115207, type: 3}
+  dieSmokeEffect: {fileID: 7457633750189500270, guid: db8c432915b128c41b39e4a94e443e2c, type: 3}
+  idleClimbSprite: {fileID: 21300000, guid: bd7cf92eaa4d2e84cb1cf9f99b7dbd93, type: 3}
 --- !u!61 &5068337057076821432
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -167,20 +183,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &3538806575617014574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5039143774809337925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4af80d769538b842bfe64afef83aef0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  impactDustEffect: {fileID: 1164438022907966939, guid: 840e70cffffb26144bd91ae2f3115207, type: 3}
-  dieSmokeEffect: {fileID: 7457633750189500270, guid: db8c432915b128c41b39e4a94e443e2c, type: 3}
 --- !u!95 &1483781308
 Animator:
   serializedVersion: 3

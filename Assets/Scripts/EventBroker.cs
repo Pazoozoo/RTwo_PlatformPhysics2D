@@ -8,6 +8,7 @@ public class EventBroker {
     public static EventBroker Instance => _instance ??= new EventBroker();
     
     public Action OnDeath;
+    public Action<bool> OnLadderUpdate;
     public Action<Vector3> OnCheckpointUpdate;
     public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
     public Action<int> OnWallSlide;

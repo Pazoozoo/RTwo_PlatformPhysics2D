@@ -3,9 +3,11 @@ using UnityEngine;
 public class AnimationController : MonoBehaviour {
     [SerializeField] GameObject impactDustEffect;
     [SerializeField] GameObject dieSmokeEffect;
+    [SerializeField] Sprite idleClimbSprite;
     
     Animator _animator;
     Bounds _bounds;
+    SpriteRenderer _spriteRenderer;
     float _airJumpTime;
     float _airJumpLength;
     float _dustTime;    
@@ -16,6 +18,8 @@ public class AnimationController : MonoBehaviour {
     const string JumpAnimation = "jump";
     const string AirJumpAnimation = "double_jump";
     const string WallSlideAnimation = "wall_slide";
+    const string ClimbAnimation = "climb";
+    const string IdleClimbAnimation = "idle_climb";
     const string DieAnimation = "die";
 
     bool InAirJumpAnimation => Time.time < _airJumpTime + _airJumpLength;
@@ -24,6 +28,7 @@ public class AnimationController : MonoBehaviour {
     void Awake() {
         _animator = GetComponent<Animator>();
         _bounds = GetComponent<Collider2D>().bounds;
+        _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void OnEnable() {
@@ -62,6 +67,12 @@ public class AnimationController : MonoBehaviour {
                 break;
             case PlayerController.PlayerState.WallSlide:
                 _animator.Play(WallSlideAnimation);
+                break;
+            case PlayerController.PlayerState.Climb:
+                _animator.Play(ClimbAnimation);
+                break;
+            case PlayerController.PlayerState.IdleClimb:
+                _animator.Play(IdleClimbAnimation);
                 break;
             case PlayerController.PlayerState.Die:
                 _animator.Play(DieAnimation);
