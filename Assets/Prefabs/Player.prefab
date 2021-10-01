@@ -135,7 +135,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   impactDustEffect: {fileID: 1164438022907966939, guid: 840e70cffffb26144bd91ae2f3115207, type: 3}
   dieSmokeEffect: {fileID: 7457633750189500270, guid: db8c432915b128c41b39e4a94e443e2c, type: 3}
-  idleClimbSprite: {fileID: 21300000, guid: bd7cf92eaa4d2e84cb1cf9f99b7dbd93, type: 3}
 --- !u!61 &5068337057076821432
 BoxCollider2D:
   m_ObjectHideFlags: 0

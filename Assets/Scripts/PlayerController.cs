@@ -259,7 +259,7 @@ public class PlayerController : MonoBehaviour {
     
     void Jump() {
         if (_playerState != PlayerState.AirJump)
-            EventBroker.Instance.OnImpact?.Invoke(_faceDirection);
+            EventBroker.Instance.OnJump?.Invoke(_faceDirection);
 
         _jumpTime = Time.time;
         _jumpVelocity.y = jumpForce;
@@ -269,14 +269,15 @@ public class PlayerController : MonoBehaviour {
     }
 
     void AirJump() {
-        BroadcastPlayerState(PlayerState.AirJump);        
+        BroadcastPlayerState(PlayerState.AirJump); 
+        EventBroker.Instance.OnAirJump?.Invoke();
         airJumps -= 1;
         Jump();
     }
     
     void WallJump() {
         BroadcastPlayerState(PlayerState.WallJump);
-        EventBroker.Instance.OnImpact?.Invoke(_jumpDirection);
+        EventBroker.Instance.OnJump?.Invoke(_jumpDirection);
         
         _jumpTime = Time.time;
         _velocity.y = 0f;
