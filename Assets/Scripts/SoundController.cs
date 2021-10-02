@@ -2,36 +2,57 @@ using System;
 using UnityEngine;
 
 public class SoundController : MonoBehaviour {
-    [SerializeField] AudioClip Jump;
-    [SerializeField] AudioClip AirJump;
-    [SerializeField] AudioClip Land;
-    [SerializeField] AudioClip WallSlide;
-    [SerializeField] AudioClip Die;
-
-    AudioSource _audioSource;
+    [SerializeField] AudioSource audioSource;
+    [SerializeField] AudioSource loopingAudioSource;
+    [SerializeField] AudioClip jump;
+    [SerializeField] AudioClip airJump;
+    [SerializeField] AudioClip landing;
+    [SerializeField] AudioClip wallSlide;
+    [SerializeField] AudioClip die;
 
     void Start() {
-        _audioSource = GetComponent<AudioSource>();
         EventBroker.Instance.OnJump += PlayJumpSound;
         EventBroker.Instance.OnAirJump += PlayAirJumpSound;
         EventBroker.Instance.OnDeath += PlayDieSound;
+        EventBroker.Instance.OnWallSlide += PlayWallSlideSound;
+        EventBroker.Instance.OnWallSlideStop += StopSound;
+        EventBroker.Instance.OnLanding += PlayLandingSound;
     }
 
     void OnDestroy() {
         EventBroker.Instance.OnJump -= PlayJumpSound;
         EventBroker.Instance.OnAirJump -= PlayAirJumpSound;
         EventBroker.Instance.OnDeath -= PlayDieSound;
+        EventBroker.Instance.OnWallSlide -= PlayWallSlideSound;
+        EventBroker.Instance.OnWallSlideStop -= StopSound;
+        EventBroker.Instance.OnLanding -= PlayLandingSound;
     }
 
     void PlayJumpSound(int i) {
-        _audioSource.PlayOneShot(Jump, 0.15f);
+        audioSource.PlayOneShot(jump, 0.15f);
     }
 
     void PlayAirJumpSound() {
-        _audioSource.PlayOneShot(AirJump, 0.2f);
+        audioSource.PlayOneShot(airJump, 0.2f);
     }
 
     void PlayDieSound() {
-        _audioSource.PlayOneShot(Die, 0.8f);
+        audioSource.PlayOneShot(die, 0.8f);
+    }
+
+    void PlayLandingSound() {
+        audioSource.PlayOneShot(landing, 0.4f);
+    }
+
+    void PlayWallSlideSound(int i) {
+        if (loopingAudioSource.isPlaying && loopingAudioSource.clip == wallSlide) 
+            return;
+        
+        loopingAudioSource.clip = wallSlide;
+        loopingAudioSource.Play();
+    }
+
+    void StopSound() {
+        loopingAudioSource.Stop();
     }
 }

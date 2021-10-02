@@ -12,7 +12,9 @@ public class EventBroker {
     public Action<Vector3> OnCheckpointUpdate;
     public Action<PlayerController.PlayerState> OnPlayerStateUpdate;
     public Action<int> OnWallSlide;
+    public Action OnWallSlideStop;
     public Action<int> OnJump;
     public Action OnAirJump;
+    public Action OnLanding;
     public Action<int> OnDeathSmoke;
 }

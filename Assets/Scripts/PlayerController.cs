@@ -55,8 +55,9 @@ public class PlayerController : MonoBehaviour {
     float _wallSlideStopTime;
     float _jumpInputTime = -10f;
     float _jumpTime;
-    float _leaveGroundTime;
+    float _walkOffGroundTime;
     float _leaveWallTime;
+    float _startFallingTime = 100f;
     float _playerFadeAlpha = 1f;
 
     PlayerState _playerState;
@@ -65,6 +66,7 @@ public class PlayerController : MonoBehaviour {
     bool _onWall;
     bool _wallSliding;
     bool _onLadder;
+    bool _falling = true;
     bool _stoppedVerticalMomentum;
     
     const int Right = 1;
@@ -73,6 +75,7 @@ public class PlayerController : MonoBehaviour {
     const float HorizontalRays = 5f;
     const float RaycastOffset = 0.05f;    
     const float PlayerFadeSpeed = 0.8f;
+    const float FallingTimeForHeavyLanding = 0.25f;
     
     Collider2D _col;
     Bounds _bounds;
@@ -86,11 +89,12 @@ public class PlayerController : MonoBehaviour {
     bool OnWall => _onWall || CloseToWall;
     bool InAir => !OnGround && !OnWall && !_onLadder;
     
-    bool Falling => _velocity.y < 0f;
+    bool MovingDown => _velocity.y < 0f;
     bool MovingRight => _velocity.x > 0f;
     bool MovingLeft => _velocity.x < 0f;
     bool Jumping => _jumpVelocity != Vector3.zero;
     bool Climbing => _onLadder && !_onGround && _stoppedVerticalMomentum;
+    bool HeavyLanding => !_onGround && Time.time > _startFallingTime + FallingTimeForHeavyLanding;
 
     bool JumpInput => Time.time < _jumpInputTime + jumpInputLeeway;
     bool JumpReady => Time.time > _jumpTime + minTimeBetweenJumps;
@@ -101,7 +105,7 @@ public class PlayerController : MonoBehaviour {
     bool WallJumping => _jumpVelocity.x != 0f && !_onGround;
     bool WallSlidingDown => _velocity.y < 0 && !WallSlideStartLeeway;
     
-    bool CloseToGround => Time.time < _leaveGroundTime + jumpOffPlatformLeeway;
+    bool CloseToGround => Time.time < _walkOffGroundTime + jumpOffPlatformLeeway;
     bool CloseToWall => Time.time < _leaveWallTime + jumpOffPlatformLeeway;
     bool WallSlideStartLeeway => Time.time < _wallSlideStartTime + wallSlideStartLeeway;
     bool WallSlideStopLeeway => Time.time < _wallSlideStopTime + wallSlideStopLeeway;
@@ -141,7 +145,7 @@ public class PlayerController : MonoBehaviour {
         float desiredVelocity = Input.GetAxisRaw("Horizontal") * maxSpeed;
         float maxSpeedChange = _onGround || _onWall ? maxAcceleration : maxAirAcceleration;
         maxSpeedChange *= Time.deltaTime;
-
+        
         _velocity.x = Mathf.MoveTowards(_velocity.x, desiredVelocity, maxSpeedChange);
         _velocity.y = _onGround ? 0f : gravity;
         
@@ -172,8 +176,17 @@ public class PlayerController : MonoBehaviour {
             ReduceJumpVelocity();
         }
         
-        if (Falling) 
+        if (MovingDown) {
             CheckWallSlideFriction();
+            
+            if (!_wallSliding) {
+                if (!_falling)
+                    _startFallingTime = Time.time;
+                _falling = true;
+            }
+        }
+        else 
+            _falling = false;
 
         _velocity.x = Mathf.Clamp(_velocity.x, -maxSpeed, maxSpeed);
         _movement = _velocity * Time.deltaTime;
@@ -190,7 +203,7 @@ public class PlayerController : MonoBehaviour {
     }
     
     #endregion
-    
+
     void CheckClimbingInput() {
         var verticalInput = Input.GetAxisRaw("Vertical");
 
@@ -277,6 +290,7 @@ public class PlayerController : MonoBehaviour {
     
     void WallJump() {
         BroadcastPlayerState(PlayerState.WallJump);
+        EventBroker.Instance.OnWallSlideStop?.Invoke();
         EventBroker.Instance.OnJump?.Invoke(_jumpDirection);
         
         _jumpTime = Time.time;
@@ -285,7 +299,7 @@ public class PlayerController : MonoBehaviour {
         _jumpVelocity.y = wallJumpForce.y;
         _jumpVelocity.x = wallJumpForce.x * _jumpDirection;
         _onWall = false;
-        _wallSliding = false;
+        StopWallSlide();
         
         if (unlimitedWallJumps) return;
         wallJumps -= 1;
@@ -369,7 +383,7 @@ public class PlayerController : MonoBehaviour {
             if (_onWall) {
                 _leaveWallTime = Time.time;
                 _jumpDirection = _faceDirection;
-                _wallSliding = false;
+                StopWallSlide();
             }
             _onWall = false;
             return;
@@ -380,7 +394,7 @@ public class PlayerController : MonoBehaviour {
 
         if (horizontalInput == _faceDirection) {
             if (!_onWall) 
-                _wallSlideStartTime = Time.time;
+                WallSlideStarted();
             _wallSliding = true;
             
             if (WallSlidingDown) 
@@ -388,19 +402,38 @@ public class PlayerController : MonoBehaviour {
         } 
         else {
             if (_wallSliding) 
-                _wallSlideStopTime = Time.time;
+                WallSlideStopped();
             _wallSliding = false;
         }
         
         _onWall = !_onGround;
     }
+
+    void StopWallSlide() {
+        if (_wallSliding)
+            EventBroker.Instance.OnWallSlideStop?.Invoke();
+        _wallSliding = false;
+    }
+
+    void WallSlideStarted() {
+        _wallSlideStartTime = Time.time;
+        _startFallingTime = Time.time + 100f;
+    }
     
+    void WallSlideStopped() {
+        _wallSlideStopTime = Time.time;
+        EventBroker.Instance.OnWallSlideStop?.Invoke();
+        
+        if (!_onGround)
+            _startFallingTime = Time.time;
+    }
+
     void GroundCheck() {
         VerticalCollisionCheck(Vector3.down, out bool collision);
 
         if (!collision) {
-            if (_onGround)
-                _leaveGroundTime = Time.time;
+            if (_onGround) 
+                _walkOffGroundTime = Time.time;
             _onGround = false;
             return;
         }
@@ -409,9 +442,12 @@ public class PlayerController : MonoBehaviour {
         wallJumps = _maxWallJumps;
         _jumpVelocity.x = 0f;
         _jumpVelocity.y = 0f;
+        
+        if (HeavyLanding)
+            EventBroker.Instance.OnLanding?.Invoke();
 
         _onGround = true;
-        _wallSliding = false;
+        StopWallSlide();
     }
 
     void CeilingCheck() {
